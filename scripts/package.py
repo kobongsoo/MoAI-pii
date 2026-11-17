@@ -2,7 +2,7 @@
 #------------------------------------------------------------------
 # 배포 묶음 만들기 — moaipii-<버전>-<플랫폼>.zip / .tgz
 #=> 빌드한 라이브러리 파일 하나를 받아, 쓰는 프로젝트가 그대로 풀어 쓸 수 있는 묶음을 만든다.
-#    1) dist/moaipii-<버전>-<플랫폼>/ 에 lib/ · include/ · bindings/{python,rust,java,php}/ · doc/ 를 채운다
+#    1) dist/moaipii-<버전>-<플랫폼>/ 에 lib/ · include/ · bindings/{python,rust,java,php}/ · doc/ · samples/ 를 채운다
 #       Windows 는 C++ 링크용 가져오기 라이브러리 moaipii.dll.lib 도 lib/ 에 넣는다
 #       시험 도구 mp(.exe) 를 주면 lib/ 에 같이 넣는다
 #    2) VERSION · CHANGELOG.md · README.md · SHA256SUMS 를 넣는다
@@ -40,6 +40,7 @@ EXTRAS = [
     ("bindings/java/moaipii/Json.java", "bindings/java/moaipii/Json.java"),
     ("bindings/php/MoaiPii.php", "bindings/php/MoaiPii.php"),
     ("doc/moaipii-guide.html", "doc/moaipii-연동설명서.html"),
+    ("samples/python/moaipii_cli.py", "samples/python/moaipii_cli.py"),
 ]
 
 #------------------------------------------------------------------

@@ -19,6 +19,7 @@
 | `crates/moaipii-cli` | 시험 도구 `mp` — 텍스트 파일을 C 진입점 그대로 검사 |
 | `include/moaipii.h` | C 헤더 |
 | `bindings/{python,rust,java,php,cpp}` | 언어별 감싸개 정본 |
+| `samples/python/moaipii_cli.py` | DLL 시험 CLI 샘플 — 배포된 DLL 을 감싸개로 불러 `info`·`demo`·`selftest`·`scan`·`mask`·`bench` |
 | `tests/bindings` | 감싸개 공통 시험(`cases.json` 하나로 다섯 언어 비교) |
 | `tools` | 골든 정답표·정규화표 생성기(ko-pii 필요, 개발 전용) |
 
