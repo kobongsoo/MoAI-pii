@@ -1,0 +1,708 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>개인정보 검출 라이브러리 분리</title>
+</head>
+<body>
+<style>
+  :root{
+    --bg:#f4f6f9; --surface:#ffffff; --surface-2:#eef1f6; --ink:#191d24;
+    --muted:#58616e; --faint:#8b94a2; --line:#dde2ea; --line-strong:#c7cfda;
+    --accent:#26437e; --accent-2:#365fb0; --accent-soft:#e7edf7;
+    --c:#cf3b2e; --c-soft:#fbeceb; --s:#b3760f; --s-soft:#f9f0dc; --o:#2f8f57; --o-soft:#e6f3ea;
+    --shadow:0 1px 2px rgba(20,30,50,.04), 0 8px 24px rgba(20,30,50,.06);
+    --sans:"Pretendard Variable",Pretendard,"Malgun Gothic","맑은 고딕",-apple-system,"Apple SD Gothic Neo",system-ui,sans-serif;
+    --mono:ui-monospace,"Cascadia Code","Cascadia Mono",Consolas,"D2Coding",monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --bg:#0e1116; --surface:#161b22; --surface-2:#1d232c; --ink:#e7ebf1;
+      --muted:#9aa4b2; --faint:#6b7684; --line:#262d38; --line-strong:#333c49;
+      --accent:#7ea0e8; --accent-2:#8fb0f2; --accent-soft:#182233;
+      --c:#f2695c; --c-soft:#2a1715; --s:#e6a748; --s-soft:#271e10; --o:#57bd85; --o-soft:#122217;
+      --shadow:0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="light"]{
+    --bg:#f4f6f9; --surface:#ffffff; --surface-2:#eef1f6; --ink:#191d24;
+    --muted:#58616e; --faint:#8b94a2; --line:#dde2ea; --line-strong:#c7cfda;
+    --accent:#26437e; --accent-2:#365fb0; --accent-soft:#e7edf7;
+    --c:#cf3b2e; --c-soft:#fbeceb; --s:#b3760f; --s-soft:#f9f0dc; --o:#2f8f57; --o-soft:#e6f3ea;
+  }
+  :root[data-theme="dark"]{
+    --bg:#0e1116; --surface:#161b22; --surface-2:#1d232c; --ink:#e7ebf1;
+    --muted:#9aa4b2; --faint:#6b7684; --line:#262d38; --line-strong:#333c49;
+    --accent:#7ea0e8; --accent-2:#8fb0f2; --accent-soft:#182233;
+    --c:#f2695c; --c-soft:#2a1715; --s:#e6a748; --s-soft:#271e10; --o:#57bd85; --o-soft:#122217;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+    line-height:1.7;-webkit-font-smoothing:antialiased;font-size:16px;letter-spacing:-0.003em;}
+  .wrap{max-width:1000px;margin:0 auto;padding:0 24px 96px;}
+  header.doc{padding:56px 0 34px;border-bottom:1px solid var(--line);margin-bottom:40px;}
+  .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--accent);font-weight:600;display:flex;gap:10px;align-items:center;margin-bottom:20px;}
+  .eyebrow::before{content:"";width:26px;height:2px;background:var(--accent);border-radius:2px;}
+  h1.title{font-size:clamp(28px,4.6vw,44px);line-height:1.12;margin:0 0 14px;font-weight:800;
+    letter-spacing:-0.02em;text-wrap:balance;}
+  .lede{font-size:clamp(16px,2.1vw,19px);color:var(--muted);margin:0 0 22px;max-width:64ch;}
+  .lede b{color:var(--ink);font-weight:600;}
+  .meta{display:flex;flex-wrap:wrap;gap:8px;}
+  .chip{font-size:12px;font-family:var(--mono);color:var(--muted);background:var(--surface);
+    border:1px solid var(--line);border-radius:999px;padding:5px 12px;}
+  .chip b{color:var(--ink);font-weight:600;}
+  section{margin:52px 0;scroll-margin-top:20px;}
+  .sec-head{display:flex;align-items:baseline;gap:14px;margin-bottom:22px;}
+  .sec-num{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--accent);
+    border:1px solid var(--line-strong);border-radius:7px;padding:3px 9px;flex:none;line-height:1.3;}
+  h2{font-size:clamp(21px,3vw,27px);margin:0;font-weight:750;letter-spacing:-0.015em;line-height:1.25;}
+  h3{font-size:17px;margin:30px 0 12px;font-weight:700;letter-spacing:-0.01em;}
+  p{margin:0 0 15px;max-width:72ch;}
+  ul.plain{margin:0 0 15px;padding-left:20px;} ul.plain li{margin:5px 0;color:var(--muted);}
+  ul.plain li b{color:var(--ink);font-weight:600;}
+  ol.plain{margin:0 0 15px;padding-left:22px;} ol.plain li{margin:6px 0;color:var(--muted);}
+  ol.plain li b{color:var(--ink);font-weight:600;}
+  .tldr{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--accent);
+    border-radius:12px;padding:22px 24px;box-shadow:var(--shadow);}
+  .tldr .k{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--accent);font-weight:700;margin-bottom:10px;}
+  .tldr p{margin:0;font-size:17px;color:var(--ink);max-width:none;}
+  .tldr b{color:var(--accent-2);}
+  .twrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);margin:16px 0;}
+  table{border-collapse:collapse;width:100%;font-size:14px;min-width:640px;background:var(--surface);}
+  th,td{text-align:left;padding:10px 13px;border-bottom:1px solid var(--line);vertical-align:top;}
+  thead th{background:var(--surface-2);font-size:12px;letter-spacing:.03em;color:var(--muted);
+    text-transform:uppercase;font-weight:700;white-space:nowrap;}
+  tbody tr:last-child td{border-bottom:none;}
+  td.mono,.mono-cell{font-family:var(--mono);font-size:13px;white-space:nowrap;}
+  code.inl{font-family:var(--mono);font-size:.9em;background:var(--surface-2);border:1px solid var(--line);
+    border-radius:5px;padding:1px 6px;}
+  pre{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 20px;
+    overflow-x:auto;font-family:var(--mono);font-size:13px;line-height:1.65;box-shadow:var(--shadow);color:var(--ink);}
+  pre .cm{color:var(--o);} pre .kw{color:var(--accent-2);font-weight:600;} pre .hi{color:var(--c);font-weight:600;}
+  .note{border:1px solid var(--line);background:var(--surface-2);border-radius:12px;padding:16px 18px;
+    font-size:14.5px;display:flex;gap:12px;align-items:flex-start;margin:16px 0;}
+  .note .badge{font-family:var(--mono);font-size:10.5px;font-weight:800;letter-spacing:.06em;
+    padding:3px 8px;border-radius:6px;flex:none;text-transform:uppercase;white-space:nowrap;}
+  .note.safe .badge{color:var(--o);background:var(--o-soft);border:1px solid color-mix(in srgb,var(--o) 35%,transparent);}
+  .note.warn .badge{color:var(--s);background:var(--s-soft);border:1px solid color-mix(in srgb,var(--s) 35%,transparent);}
+  .note.bad .badge{color:var(--c);background:var(--c-soft);border:1px solid color-mix(in srgb,var(--c) 35%,transparent);}
+  .note.info .badge{color:var(--accent-2);background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent-2) 35%,transparent);}
+  .note p{margin:0;color:var(--muted);max-width:none;}
+  .note b{color:var(--ink);}
+  .x{color:var(--c);font-weight:700}
+  .ok{color:var(--o);font-weight:700}
+  .wn{color:var(--s);font-weight:700}
+  .src{font-family:var(--mono);font-size:12px;color:var(--faint);}
+  .fig{background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);
+    padding:18px;margin:16px 0;overflow-x:auto;}
+  .fig svg{display:block;min-width:680px;width:100%;height:auto;}
+  .fig text{font-family:var(--sans);fill:var(--ink);font-size:13px;}
+  .fig .t-mono{font-family:var(--mono);font-size:11.5px;fill:var(--muted);}
+  .fig .t-h{font-weight:700;font-size:14px;}
+  .fig .box{fill:var(--surface-2);stroke:var(--line-strong);}
+  .fig .box-a{fill:var(--accent-soft);stroke:var(--accent-2);}
+  .fig .ln{stroke:var(--muted);stroke-width:1.4;fill:none;}
+  .fig .ln-d{stroke:var(--faint);stroke-width:1.2;fill:none;stroke-dasharray:5 4;}
+  .fig .ah{fill:var(--muted);}
+  footer{margin-top:64px;padding-top:24px;border-top:1px solid var(--line);
+    font-size:13px;color:var(--faint);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;
+    font-family:var(--mono);letter-spacing:.02em;}
+  @media print{ body{background:#fff;} .tldr,pre,.twrap,.fig{box-shadow:none;} }
+  .warn{color:var(--s);font-weight:700}
+</style>
+
+<div class="wrap">
+
+  <header class="doc">
+    <div class="eyebrow">구조 설계 · Korean PII Detection Library</div>
+    <h1 class="title">개인정보 검출 엔진을 독립 라이브러리로 떼어 내기<br>— <code class="inl">D:\Project\MoAI-pii</code> · <code class="inl">moaipii.dll / libmoaipii.so</code></h1>
+    <p class="lede">지금 개인정보(PII) 검출은 MpowerClassify 안에 <b>두 벌</b>이 있다. Python 판은 PyPI 패키지 <code class="inl">ko-pii 1.15.2</code>에 보강 코드를 덧댄 것이고,
+    Rust 판은 같은 알고리즘을 옮겨 적은 <code class="inl">Rust/src/pii.rs</code>다. 이번 작업은 <b>Rust 판만 정본으로 남겨</b> 별도 프로젝트 <code class="inl">D:\Project\MoAI-pii</code>로 옮긴다.
+    그곳에서 <b>Windows용 <code class="inl">moaipii.dll</code>과 Linux용 <code class="inl">libmoaipii.so</code></b>를 만들고,
+    MpowerClassify의 <b>Rust 판과 Python 판이 둘 다 이 파일을 실행 중에 불러서 쓴다.</b> 문서파서(DocParse-rust)를 떼어 낸 방식을 그대로 따른다.
+    다른 제품에서도 쓸 수 있도록 <b>Java·PHP·C++ 감싸개</b>도 함께 낸다(§5).</p>
+    <div class="meta">
+      <span class="chip"><b>대상</b> Rust 판 · Python 판</span>
+      <span class="chip"><b>새 프로젝트</b> D:\Project\MoAI-pii</span>
+      <span class="chip"><b>산출물</b> moaipii.dll · libmoaipii.so · moaipii.h</span>
+      <span class="chip"><b>감싸개</b> Python · Rust · Java · PHP · C++</span>
+      <span class="chip"><b>Rust 판 동작</b> 바뀌지 않음</span>
+      <span class="chip"><b>Python 판 동작</b> 판정 바뀜(평가셋 확인 후 전환)</span>
+      <span class="chip"><b>상태</b> 설계</span>
+      <span class="chip"><b>작성일</b> 2026-11-17</span>
+    </div>
+  </header>
+
+  <div class="tldr">
+    <div class="k">한 줄 요약</div>
+    <p>Rust PII 파일 4개(<code class="inl">pii.rs</code>·<code class="inl">pii_fold.rs</code>·<code class="inl">districts.rs</code>·<code class="inl">districts_data.rs</code>, 약 9,600줄)를 시험 자료와 함께
+    <code class="inl">D:\Project\MoAI-pii</code>로 옮긴다. 그 프로젝트는 <b>C 함수 6개를 내보내는 공유 라이브러리</b>를 두 OS용으로 만들어 배포 묶음(zip·tgz)으로 낸다.
+    MpowerClassify는 묶음을 <code class="inl">third_party/moaipii/</code>에 버전을 고정해 받아 두고, Rust 판은 <code class="inl">libloading</code>으로, Python 판은 <code class="inl">ctypes</code>로 <b>같은 파일 하나</b>를 불러 쓴다.
+    본문은 <b>(포인터, 길이)</b>로 넘기고 결과는 JSON으로 받는다. 좌표는 <b>부르는 언어가 고른 단위</b>(문자·UTF-16·바이트)로 받으며, 원문 값은 요청할 때만 경계를 넘는다.
+    감싸개는 Python·Rust·Java(JNA)·PHP(FFI)·C++(헤더 하나) 다섯 가지이고, <b>같은 시험 사례 파일</b>로 다섯 감싸개가 같은 답을 내는지 확인한다.
+    Rust 판은 분리 전후 결과가 <b>한 건도 달라지면 안 되고</b>, Python 판은 <code class="inl">ko-pii</code>를 버리는 대신 평가셋으로 판정 차이를 확인한 뒤 기본값을 바꾼다.</p>
+  </div>
+
+  <!-- 1 -->
+  <section>
+    <div class="sec-head"><span class="sec-num">01</span><h2>왜 하나 · 왜 Rust 판을 정본으로 삼나</h2></div>
+    <h3>1-1. 지금은 같은 검출기가 두 벌이다</h3>
+    <div class="twrap">
+      <table>
+        <thead><tr><th></th><th>Python 판</th><th>Rust 판</th></tr></thead>
+        <tbody>
+          <tr><td>엔진</td><td><code class="inl">ko-pii==1.15.2</code> (PyPI, 순수 파이썬)</td><td><code class="inl">Rust/src/pii.rs</code> 2,677줄 — ko-pii 1.15.2를 옮겨 적음</td></tr>
+          <tr><td>정규화 표·사전</td><td>ko-pii 내장 사전(.txt.gz)</td><td><code class="inl">pii_fold.rs</code> 6,831줄(생성물) · <code class="inl">districts*.rs</code> 112줄</td></tr>
+          <tr><td>우리 보강(의도적 차이 A·A-2·B·G·H·I·J)</td><td><code class="inl">classify/rules.py</code> 199~640줄 (주소·IP·여권·계좌 보강 검출기)</td><td><code class="inl">pii.rs</code> 안에 같은 내용</td></tr>
+          <tr><td>긴 문서</td><td class="wn">1만 자 단위로 잘라 스캔. 전화·주소·계좌는 <b>앞 100만 자까지만</b> 봄</td><td class="ok">상한 없음, 한 번에 스캔</td></tr>
+          <tr><td>정답 대조</td><td colspan="2"><code class="inl">Rust/tests/pii_corpus.yaml</code> → <code class="inl">scripts/gen_pii_golden.py</code>(진짜 ko-pii) → <code class="inl">pii_golden.json</code> → <code class="inl">cargo test</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>두 벌이라서 생기는 일:</p>
+    <ul class="plain">
+      <li><b>고칠 때마다 두 번 고친다</b> — 커밋 <code class="inl">85915c7</code>(2026-11-11, 여권·계좌·IP)도 <code class="inl">pii.rs</code>, <code class="inl">rules.py</code>, 말뭉치, 골든 파일, 양쪽 시험을 함께 고쳤다.</li>
+      <li><b>결과가 이미 다르다</b> — D:\분류함 비교(2026-09-04)에서 1MB가 넘는 문서 36건에서 Python 판이 전화·주소·계좌를 <b>477건 덜</b> 잡았다. V10 비교(2026-11-05)에서는 F1이 MC-Py 93.1, MC-Rust 92.5로 나왔다.</li>
+      <li><b>아직 맞추지 못한 차이</b> — <code class="inl">doc/ko-pii 차이점.html</code>의 D(구분자 없는 줄에서 EMAIL·IP 겹침 해소)는 보류 상태다.</li>
+    </ul>
+
+    <h3>1-2. 왜 Rust 판을 정본으로 삼나</h3>
+    <ul class="plain">
+      <li><b>이미 모든 보강이 들어가 있다</b> — 의도적 차이 A~J가 Rust 쪽에 다 있고, 손으로 쓴 단위 시험과 ko-pii 골든 시험이 둘 다 있다.</li>
+      <li><b>빠르다</b> — 순수 파이썬 정규식이 느려서 Python 판에 100만 자 상한과 1만 자 청크를 둔 것이다. Rust 판은 상한 없이 전체를 본다.</li>
+      <li><b>C 라이브러리로 내보내기 쉽다</b> — 전역 상태가 없고(<code class="inl">Lazy</code> 정규식·표뿐), 다른 모듈 의존은 <code class="inl">districts</code>·<code class="inl">pii_fold</code> 두 개뿐이다.</li>
+      <li><b>앞서 한 번 해 봤다</b> — DocParse-rust 분리(2026-11-10)에서 C 진입점, 묶음, 감싸개, <code class="inl">update-*.sh</code> 흐름을 이미 검증했다.</li>
+    </ul>
+
+    <h3>1-3. Rust 판도 "불러 쓰기"로 하는 이유</h3>
+    <div class="twrap">
+      <table>
+        <thead><tr><th>방식</th><th>좋은 점</th><th>나쁜 점</th><th>판단</th></tr></thead>
+        <tbody>
+          <tr><td>Rust 판은 소스째 링크(<code class="inl">moaipii = { git = … }</code>), Python만 DLL</td><td>실행파일 하나 그대로. JSON 변환 없음</td><td>두 판이 <b>다른 빌드</b>를 쓰게 된다. 빌드서버가 MoAI-pii 저장소도 받아야 한다</td><td>쓰지 않음</td></tr>
+          <tr><td class="ok"><b>둘 다 같은 DLL/.so를 불러 씀</b></td><td><b>바이트 단위로 같은 검출기</b>. 검출기만 바꿔 배포할 수 있다. 버전이 하나다</td><td>배포본에 파일 하나가 는다. 호출마다 JSON 변환(검출 비용에 비하면 작다)</td><td class="ok">채택</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 2 -->
+  <section>
+    <div class="sec-head"><span class="sec-num">02</span><h2>옮길 것 · 남길 것</h2></div>
+    <p>판단 기준은 하나다. <b>"이 텍스트에 어떤 개인정보가 어디에 있나"</b>까지는 라이브러리로 옮기고,
+    <b>"그래서 문서 등급이 무엇인가"</b>(cso_rule.yaml 해석, 등급 상향, 콤보, 등급 상한)는 MpowerClassify에 남긴다.</p>
+    <h3>2-1. MoAI-pii로 옮기는 것</h3>
+    <div class="twrap">
+      <table>
+        <thead><tr><th>지금 위치 (MpowerClassify)</th><th>크기</th><th>새 위치 (MoAI-pii)</th><th>비고</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">Rust/src/pii.rs</td><td>2,677줄</td><td class="mono">crates/moaipii/src/lib.rs (또는 detect.rs)</td><td>본체. <code class="inl">use crate::districts</code>·<code class="inl">pii_fold</code>만 경로 정리</td></tr>
+          <tr><td class="mono">Rust/src/pii_fold.rs</td><td>6,831줄</td><td class="mono">crates/moaipii/src/fold.rs</td><td>생성물. 고치지 않는다</td></tr>
+          <tr><td class="mono">Rust/src/districts.rs · districts_data.rs</td><td>112줄</td><td class="mono">crates/moaipii/src/districts*.rs</td><td>PII만 쓴다(다른 사용처 없음 확인)</td></tr>
+          <tr><td class="mono">Rust/tests/pii_corpus.yaml · pii_golden.json</td><td></td><td class="mono">tests/</td><td>ko-pii 대조 골든</td></tr>
+          <tr><td class="mono">scripts/gen_pii_golden.py · gen_pii_fold.py</td><td></td><td class="mono">tools/</td><td>ko-pii는 이제 <b>개발 도구 전용</b> 의존이 된다</td></tr>
+          <tr><td class="mono">Rust/examples/pii_bench.rs</td><td>111줄</td><td class="mono">crates/moaipii-cli (mp.exe)</td><td>C 진입점을 그대로 거쳐 텍스트 파일을 검사하는 시험 도구</td></tr>
+          <tr><td class="mono">doc/ko-pii 차이점.html · ko-pii-33패턴-검출방식.html · MpowerClassify-PII검증가이드.html</td><td></td><td class="mono">doc/</td><td>원본은 MoAI-pii로, MpowerClassify에는 링크만 남김</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>2-2. MpowerClassify에 남기는 것</h3>
+    <ul class="plain">
+      <li><b>Rust</b> — <code class="inl">rules.rs</code>의 <code class="inl">scan_text</code>(등급 상향·콤보), <code class="inl">collect_pii</code>(<code class="inl">--with-pii</code> 레코드 만들기), PII 등급 상한(<code class="inl">pii_grade_cap</code>).</li>
+      <li><b>Python</b> — <code class="inl">rules.py</code>의 <code class="inl">_scan_pii</code>·<code class="inl">_combo_hits</code>·<code class="inl">_cap_pii_hits</code>·<code class="inl">collect_pii</code>, 규칙셋 로드·검증.</li>
+    </ul>
+    <h3>2-3. Python 판에서 지우는 것</h3>
+    <div class="twrap">
+      <table>
+        <thead><tr><th>위치</th><th>내용</th><th>대신</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">rules.py 40~125</td><td><code class="inl">ko_pii</code> import 블록 전체</td><td><code class="inl">_moaipii</code> 감싸개 import</td></tr>
+          <tr><td class="mono">rules.py 130~198</td><td><code class="inl">CSOCLASSIFY_KOPII_MAX_CHARS / MAX_TOTAL / OVERLAP</code>, <code class="inl">_KOPII_SUPERLINEAR</code></td><td>없음. 라이브러리가 전체를 한 번에 본다</td></tr>
+          <tr><td class="mono">rules.py 199~640</td><td><code class="inl">_address_prefilter</code>, <code class="inl">_gated_address_detect</code>, <code class="inl">_guarded_ip_detect</code>, <code class="inl">_passport_detect</code>, <code class="inl">_guarded_account_detect</code>, <code class="inl">_table_account_detect</code>, <code class="inl">_detect_subset</code></td><td>라이브러리 안의 같은 규칙</td></tr>
+          <tr><td class="mono">rules.py 1153~1296</td><td><code class="inl">_chunk_windows</code>, <code class="inl">_count_merged_spans</code>, <code class="inl">_kopii_scan</code></td><td><code class="inl">_pii_scan</code> (라이브러리 한 번 호출)</td></tr>
+          <tr><td class="mono">requirements.txt</td><td><code class="inl">ko-pii==1.15.2</code></td><td>삭제</td></tr>
+          <tr><td class="mono">build/csoclassify.spec</td><td><code class="inl">collect_data_files("ko_pii")</code> 등</td><td><code class="inl">moaipii.dll</code>을 묶음 최상위에 넣음(docparse와 같은 방식)</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note warn"><span class="badge">확인</span>
+      <p>Python 판에서 지우는 줄은 대략 <b>600줄</b>이다. <code class="inl">tests/test_rules.py</code>에서 <code class="inl">R._kopii_counts</code>를 부르는 시험과
+      청크 시험(<code class="inl">test_kopii_chunking_*</code>)은 라이브러리 기준으로 고치거나 지운다. 청크가 없어지므로 청크 시험은 지킬 대상이 사라진다.</p></div>
+  </section>
+
+  <!-- 3 -->
+  <section>
+    <div class="sec-head"><span class="sec-num">03</span><h2>목표 구조</h2></div>
+    <div class="fig">
+      <svg viewBox="0 0 900 340" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="MoAI-pii 라이브러리를 MpowerClassify Rust 판과 Python 판이 함께 불러 쓰는 구조">
+        <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="ah" d="M0,0 L10,5 L0,10 z"/></marker></defs>
+        <rect class="box-a" x="20" y="20" width="360" height="300" rx="12"/>
+        <text class="t-h" x="40" y="48">D:\Project\MoAI-pii (별도 저장소)</text>
+        <rect class="box" x="40" y="66" width="320" height="58" rx="8"/>
+        <text x="56" y="90" class="t-h">crates/moaipii</text>
+        <text x="56" y="110" class="t-mono">검출기 20라벨 · 정규화 · 겹침 해소 · 의도적 차이</text>
+        <rect class="box" x="40" y="140" width="320" height="58" rx="8"/>
+        <text x="56" y="164" class="t-h">crates/moaipii-ffi → cdylib</text>
+        <text x="56" y="184" class="t-mono">moaipii.dll / libmoaipii.so · C 함수 6개</text>
+        <rect class="box" x="40" y="214" width="320" height="86" rx="8"/>
+        <text x="56" y="238" class="t-h">배포 묶음 (dist/)</text>
+        <text x="56" y="258" class="t-mono">moaipii-&lt;ver&gt;-windows-x64.zip · -linux-x64.tgz</text>
+        <text x="56" y="276" class="t-mono">lib/ · include/ · bindings/{py,rs,java,php,cpp}</text>
+        <text x="56" y="294" class="t-mono">VERSION · CHANGELOG.md · SHA256SUMS</text>
+        <path class="ln" d="M200 124 L200 140" marker-end="url(#a)"/>
+        <path class="ln" d="M200 198 L200 214" marker-end="url(#a)"/>
+
+        <rect class="box-a" x="520" y="20" width="360" height="300" rx="12"/>
+        <text class="t-h" x="540" y="48">D:\Project\MpowerClassify</text>
+        <rect class="box" x="540" y="66" width="320" height="58" rx="8"/>
+        <text x="556" y="90" class="t-h">third_party/moaipii/</text>
+        <text x="556" y="110" class="t-mono">&lt;os&gt;-x64/ · include/ · VERSION (버전 고정)</text>
+        <rect class="box" x="540" y="140" width="155" height="160" rx="8"/>
+        <text x="556" y="164" class="t-h">Rust 판</text>
+        <text x="556" y="186" class="t-mono">moaipii_dyn.rs</text>
+        <text x="556" y="204" class="t-mono">(libloading)</text>
+        <text x="556" y="228" class="t-mono">rules.rs</text>
+        <text x="556" y="246" class="t-mono">scan_text</text>
+        <text x="556" y="264" class="t-mono">collect_pii</text>
+        <rect class="box" x="705" y="140" width="155" height="160" rx="8"/>
+        <text x="721" y="164" class="t-h">Python 판</text>
+        <text x="721" y="186" class="t-mono">_moaipii.py</text>
+        <text x="721" y="204" class="t-mono">(ctypes)</text>
+        <text x="721" y="228" class="t-mono">rules.py</text>
+        <text x="721" y="246" class="t-mono">_scan_pii</text>
+        <text x="721" y="264" class="t-mono">collect_pii</text>
+        <path class="ln" d="M617 124 L617 140" marker-end="url(#a)"/>
+        <path class="ln" d="M782 124 L782 140" marker-end="url(#a)"/>
+        <path class="ln-d" d="M380 257 C450 257 450 95 538 95" marker-end="url(#a)"/>
+        <text x="408" y="186" class="t-mono">update-moaipii.sh</text>
+      </svg>
+    </div>
+
+    <h3>3-1. MoAI-pii 저장소</h3>
+    <pre>D:\Project\MoAI-pii
+├─ Cargo.toml                 <span class="cm"># workspace — DocParse-rust 와 같은 profile.release(lto, strip, panic=unwind)</span>
+├─ crates/
+│  ├─ moaipii/                <span class="cm"># 본체(Rust 라이브러리). pii.rs · fold.rs · districts*.rs</span>
+│  ├─ moaipii-ffi/            <span class="cm"># C 진입점 → moaipii.dll / libmoaipii.so</span>
+│  └─ moaipii-cli/            <span class="cm"># mp.exe — 텍스트 파일 → 검출 JSON (C 진입점을 그대로 거친다)</span>
+├─ include/moaipii.h
+├─ bindings/
+│  ├─ python/moaipii.py       <span class="cm"># ctypes 감싸개 정본 (MpowerClassify 로 복사)</span>
+│  ├─ rust/moaipii_dyn.rs     <span class="cm"># libloading 감싸개 정본 (MpowerClassify 로 복사)</span>
+│  ├─ java/moaipii/           <span class="cm"># MoaiPii.java · Json.java — JNA, Java 8+ (DocParse-rust 와 같은 틀)</span>
+│  ├─ php/MoaiPii.php         <span class="cm"># FFI 확장, PHP 7.4+</span>
+│  └─ cpp/moaipii.hpp         <span class="cm"># 헤더 하나, C++17. 링크형·동적 로드형 둘 다</span>
+├─ tests/                     <span class="cm"># pii_corpus.yaml · pii_golden.json · ffi 왕복 시험</span>
+│  └─ bindings/               <span class="cm"># cases.json(공통 사례·정답) + 언어별 실행기 5개</span>
+├─ tools/                     <span class="cm"># gen_pii_golden.py (ko-pii 필요, 개발 전용) · gen_pii_fold.py</span>
+├─ scripts/                   <span class="cm"># win-build.sh · linux-build.sh · package.py · server.env.sample</span>
+├─ doc/                       <span class="cm"># ko-pii 차이점 · 33패턴 검출방식 · 사용 설명서</span>
+├─ plan/                      <span class="cm"># 이 설계서</span>
+├─ CHANGELOG.md               <span class="cm"># "결과 바뀜" 표시 — 받는 쪽이 평가셋을 다시 돌릴지 판단</span>
+└─ dist/</pre>
+    <p>DocParse-rust의 <code class="inl">scripts/</code>(win-build·linux-build·package.py)를 복사해 이름만 바꿔 쓴다.
+    Linux는 같은 빌드서버(CentOS 7, glibc ≤ 2.17)에서 만들고, RPATH나 동반 파일은 필요 없다. PII 라이브러리는 pdfium 같은 외부 .so를 쓰지 않는다.</p>
+
+    <h3>3-2. 배포 묶음</h3>
+    <div class="twrap">
+      <table>
+        <thead><tr><th>경로</th><th>내용</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">lib/moaipii.dll · lib/libmoaipii.so</td><td>라이브러리 본체(한 OS당 한 파일)</td></tr>
+          <tr><td class="mono">lib/moaipii.dll.lib (Windows만)</td><td>C++에서 <b>링크형</b>으로 쓸 때 필요한 가져오기 라이브러리. cdylib 빌드가 함께 만든다</td></tr>
+          <tr><td class="mono">include/moaipii.h · include/moaipii.hpp</td><td>C 헤더(함수, 반환 코드, 옵션·결과 JSON 규약) · C++ 감싸개 헤더</td></tr>
+          <tr><td class="mono">bindings/{python,rust,java,php}/</td><td>감싸개 정본(C++은 include/에 둔다)</td></tr>
+          <tr><td class="mono">doc/moaipii-연동설명서.html</td><td>언어별 준비·사용 예·좌표 단위 설명(DocParse-rust의 연동설명서와 같은 꼴)</td></tr>
+          <tr><td class="mono">VERSION · CHANGELOG.md · SHA256SUMS</td><td><code class="inl">0.1.0+&lt;git해시&gt;</code> 형식. 해시로 묶음이 온전한지 확인</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>3-3. MpowerClassify 쪽</h3>
+    <ul class="plain">
+      <li><code class="inl">third_party/moaipii/{windows-x64,linux-x64,include}/</code> + <code class="inl">VERSION</code> — 정본은 저장소에 커밋해 버전을 고정한다.</li>
+      <li><code class="inl">scripts/build/update-moaipii.sh</code> — <code class="inl">update-docparse.sh</code>를 복사해 만든다. 묶음을 풀고, SHA256을 확인하고, third_party에 넣고, 감싸개 두 개를 갈아 끼운다.
+        <br>(감싸개 사본 위치: <code class="inl">src/csoclassify/classify/_moaipii.py</code>, <code class="inl">Rust/src/moaipii_dyn.rs</code> — 직접 고치지 않는다)</li>
+      <li><code class="inl">Rust/build.rs</code> — docparse처럼 <code class="inl">moaipii.dll</code>을 실행파일 옆에 복사한다.</li>
+      <li><code class="inl">build/csoclassify.spec</code>, <code class="inl">linux-build.sh</code>, <code class="inl">win-deploy.sh</code>, <code class="inl">linux-remote.sh</code> — docparse를 다루는 줄 옆에 moaipii를 더한다.</li>
+    </ul>
+  </section>
+
+  <!-- 4 -->
+  <section>
+    <div class="sec-head"><span class="sec-num">04</span><h2>라이브러리의 모양 (C 진입점)</h2></div>
+    <pre><span class="cm">/* moaipii.h — 한국어 개인정보 검출 라이브러리
+ *   Windows: moaipii.dll   Linux: libmoaipii.so
+ * 규칙은 docparse.h 와 같다:
+ *   - char** out 으로 받은 문자열은 성공이든 실패든 moaipii_free 로 돌려준다(C free 금지).
+ *   - const char* 로 받는 것(버전)은 고정 문자열이라 해제하지 않는다.
+ *   - 성공·실패는 반환 코드로 가르고, 사유는 결과 JSON 의 "error" 에 있다.
+ *   - 전역 상태가 없어 여러 스레드에서 동시에 불러도 된다.
+ */</span>
+<span class="kw">#define</span> MOAIPII_ABI_VERSION 1
+
+<span class="kw">typedef enum</span> { MP_OK = 0, MP_ERR_ARG = 1, MP_ERR_UTF8 = 2, MP_ERR_FAILED = 5, MP_ERR_PANIC = 99 } mp_status;
+
+uint32_t    moaipii_abi_version(<span class="kw">void</span>);
+<span class="kw">const char</span>* moaipii_version(<span class="kw">void</span>);              <span class="cm">// "0.1.0+abc1234"</span>
+<span class="kw">const char</span>* moaipii_kopii_basis(<span class="kw">void</span>);          <span class="cm">// "1.15.2" — 어느 ko-pii 를 보고 옮겼나(지금의 KOPII_PORTED_FROM)</span>
+<span class="kw">int</span>         moaipii_labels(<span class="kw">char</span>** out_json);      <span class="cm">// 지원 라벨·별칭 목록 (UI 규칙 편집기가 씀)</span>
+<span class="kw">int</span>         moaipii_scan(<span class="kw">const uint8_t</span>* text, <span class="hi">size_t len</span>,
+                         <span class="kw">const char</span>* opts_json, <span class="kw">char</span>** out_json);
+<span class="kw">void</span>        moaipii_free(<span class="kw">char</span>* p);                 <span class="cm">// 지우기 전에 0 으로 덮는다</span></pre>
+
+    <h3>4-1. 옵션 · 결과 JSON</h3>
+    <pre><span class="cm">// 옵션 — 빠진 키는 기본값, 모르는 키는 무시</span>
+{ "labels": ["RRN","PHONE","ADDRESS", ...],   <span class="cm">// 필수. 켤 라벨(별칭 PRESCRIPTION 허용)</span>
+  "items":  true,                             <span class="cm">// false = 건수만 (위치 목록 생략 — 주소록 같은 큰 문서에서 JSON 을 줄인다)</span>
+  "values": false,                            <span class="cm">// true = 원문 값도 싣는다 (--with-pii 전용)</span>
+  "offsets": "char",                          <span class="cm">// "char"(코드포인트) | "utf16"(Java) | "byte"(PHP·C++ · 넘긴 바이트 기준)</span>
+  "invalid_utf8": "error",                    <span class="cm">// "error" = MP_ERR_UTF8 | "replace" = 깨진 바이트를 U+FFFD 로 보고 검사</span>
+  "today":  null }                            <span class="cm">// "2026-11-17" — 미래 생년월일 판단 기준일. null = 부를 때의 시스템 날짜</span>
+
+<span class="cm">// 성공</span>
+{ "chars": 48213,
+  "counts": { "PHONE": 7, "BUSINESS_REG": 1, "PRESCRIPTION_ID": 2, "PRESCRIPTION": 2 },
+  "items":  [ { "label": "BUSINESS_REG", "start": 13, "end": 25 },
+              { "label": "PHONE", "start": 40, "end": 53 }, ... ] }   <span class="cm">// 겹침 해소 후, 문서 순서</span>
+
+<span class="cm">// 실패</span>
+{ "error": { "kind": "arg"|"utf8"|"failed"|"panic", "message": "..." } }</pre>
+    <ul class="plain">
+      <li><b>건수와 위치가 한 번의 스캔에서 나온다</b> — 2026-09-11에 Python 판에서 "전화 7건인데 값은 9개"가 나왔던 일이 구조적으로 생길 수 없다.</li>
+      <li><b>별칭</b> — <code class="inl">PRESCRIPTION</code> 별칭 집계(지금 <code class="inl">pii_counts</code> 안에 있음)는 라이브러리 안에 그대로 둔다. <code class="inl">items</code>의 라벨은 검출 라벨(<code class="inl">PRESCRIPTION_ID</code>)이다.</li>
+    </ul>
+
+    <h3>4-2. 안전 규칙</h3>
+    <div class="twrap">
+      <table>
+        <thead><tr><th>규칙</th><th>왜</th></tr></thead>
+        <tbody>
+          <tr><td><b>본문은 (포인터, 길이)로 넘긴다</b> — 널 종료 문자열이 아니다</td><td>추출된 본문에는 <code class="inl">\x00</code>이 섞일 수 있다. 널 종료로 받으면 그 뒤가 <b>소리 없이 잘려</b> 미탐이 된다. docparse는 경로만 받아서 이 문제가 없었다.</td></tr>
+          <tr><td><b>좌표 단위는 부르는 쪽이 고른다</b> — 기본은 문자(코드포인트)</td><td>언어마다 문자열을 세는 단위가 다르다. Python <code class="inl">str</code>은 코드포인트, Java <code class="inl">String</code>은 UTF-16, PHP·C++ 문자열은 바이트다.
+            감싸개가 자기 언어에 맞는 단위를 요청하면 <code class="inl">substring</code>·<code class="inl">substr</code>로 바로 자를 수 있다(§5-2). 기본값 <code class="inl">char</code>는 지금 <code class="inl">pii_records</code>가 내보내는 기준(<code class="inl">to_char_offsets</code>, 2026-09-11)과 같다.
+            <code class="inl">invalid_utf8:"replace"</code>일 때 <code class="inl">byte</code> 좌표는 <b>넘긴 원래 바이트</b>를 가리키도록 라이브러리가 되돌려 맞춘다.</td></tr>
+          <tr><td><b>Python은 <code class="inl">encode("utf-8", "replace")</code>로 넘긴다</b></td><td>본문에 짝 없는 서로게이트가 있으면 엄격한 인코딩은 실패한다. <code class="inl">replace</code>는 한 글자를 <code class="inl">?</code> 한 글자로 바꾸므로 <b>글자 수가 1:1로 유지</b>되어 좌표가 그대로 맞는다.</td></tr>
+          <tr><td><b>원문 값은 기본으로 싣지 않는다</b></td><td>"값은 세자마자 버린다"는 프라이버시 원칙. Python은 좌표로 <code class="inl">text[start:end]</code>를 직접 잘라 쓰므로 <code class="inl">values</code>가 필요 없다. Rust 판의 <code class="inl">--with-pii</code>만 <code class="inl">values:true</code>를 쓴다.</td></tr>
+          <tr><td><b><code class="inl">moaipii_free</code>는 0으로 덮고 지운다</b></td><td>결과 JSON에 위치나 값이 있으면 해제된 메모리에 남지 않게 한다.</td></tr>
+          <tr><td><b>패닉은 경계에서 잡는다</b> (<code class="inl">catch_unwind</code>, <code class="inl">panic = "unwind"</code>)</td><td>docparse와 같다. 문서 하나 때문에 데몬 전체가 죽지 않게 한다.</td></tr>
+          <tr><td><b>"오늘 날짜"를 옵션으로 받는다</b></td><td>지금 <code class="inl">TODAY</code>는 프로세스가 처음 쓸 때 <b>한 번만</b> 정해진다. 그래서 며칠씩 도는 데몬은 날짜가 낡는다. 라이브러리에서는 호출마다 계산하고, 시험에서는 <code class="inl">today</code>로 고정할 수 있게 한다(결정적 골든).</td></tr>
+          <tr><td><b>로그 콜백 없음</b></td><td>검출기는 로그를 남기지 않는다. 남기면 개인정보가 로그로 샐 수 있다. docparse의 <code class="inl">set_logger</code>는 넣지 않는다.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>4-3. 버전 관리</h3>
+    <ul class="plain">
+      <li><code class="inl">MOAIPII_ABI_VERSION</code> — 함수 이름이나 인자 모양이 바뀔 때만 올린다. 감싸개는 불러온 직후 비교하고, 다르면 로드를 거부한다.</li>
+      <li><code class="inl">moaipii_version()</code> — <code class="inl">0.1.0+&lt;git해시&gt;</code>. MpowerClassify <code class="inl">--version</code>은 <code class="inl">(moaipii 0.1.0+abc1234, ko-pii 기준 1.15.2)</code>로 바꾼다. 지금은 Python이 "ko-pii 1.15.2", Rust가 "ko-pii 포팅 기준 1.15.2"로 서로 다르게 찍는다.</li>
+      <li><code class="inl">CHANGELOG.md</code>에는 <b>"결과 바뀜"</b> 표시를 단다. 그 표시가 있는 판을 받으면 MpowerClassify 평가셋을 다시 돌린다.</li>
+    </ul>
+  </section>
+
+  <!-- 5 -->
+  <section>
+    <div class="sec-head"><span class="sec-num">05</span><h2>언어별 감싸개 — Python · Rust · Java · PHP · C++</h2></div>
+    <p>C 진입점은 하나이고, 언어마다 얇은 감싸개를 둔다. 감싸개가 하는 일은 다섯 언어 모두 같다.
+    <b>라이브러리 찾기 → ABI 확인 → 본문을 UTF-8 바이트로 넘기기 → 결과 JSON 읽기 → 곧바로 <code class="inl">moaipii_free</code> → 언어의 예외로 바꾸기.</b>
+    Java·PHP 감싸개는 DocParse-rust의 <code class="inl">bindings/java</code>(JNA)와 <code class="inl">bindings/php</code>(FFI) 틀을 그대로 따른다.</p>
+
+    <h3>5-1. 한눈에</h3>
+    <div class="twrap">
+      <table>
+        <thead><tr><th>언어</th><th>파일</th><th>불러오는 방식</th><th>최소 판 · 의존</th><th>기본 좌표</th><th>쓰는 곳</th></tr></thead>
+        <tbody>
+          <tr><td>Python</td><td class="mono">bindings/python/moaipii.py</td><td>ctypes</td><td>3.8+ · 없음</td><td class="mono">char</td><td>MpowerClassify Python 판</td></tr>
+          <tr><td>Rust</td><td class="mono">bindings/rust/moaipii_dyn.rs</td><td>libloading</td><td>libloading · serde_json</td><td class="mono">char</td><td>MpowerClassify Rust 판</td></tr>
+          <tr><td>Java</td><td class="mono">bindings/java/moaipii/MoaiPii.java · Json.java</td><td>JNA</td><td>Java 8+ · <code class="inl">net.java.dev.jna:jna:5.14.0</code></td><td class="mono">utf16</td><td>다른 제품(웹 서버·배치)</td></tr>
+          <tr><td>PHP</td><td class="mono">bindings/php/MoaiPii.php</td><td>FFI 확장</td><td>PHP 7.4+ · <code class="inl">extension=ffi</code></td><td class="mono">byte</td><td>다른 제품(웹 관리 화면)</td></tr>
+          <tr><td>C++</td><td class="mono">include/moaipii.hpp</td><td>링크형(기본) · 동적 로드형(<code class="inl">MOAIPII_DYNAMIC</code>)</td><td>C++17 · 없음 (MSVC 2019+, GCC 7+ / CentOS 7은 devtoolset)</td><td class="mono">byte</td><td>다른 제품(에이전트·서버 모듈)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>5-2. 좌표 단위를 언어마다 다르게 받는 이유</h3>
+    <p>같은 본문이라도 "몇 번째"를 세는 단위가 언어마다 다르다. 감싸개가 자기 언어의 단위로 받아야 <b>그 언어의 기본 자르기 함수로 바로 마스킹</b>할 수 있다.
+    단위를 잘못 맞추면 오류 없이 <b>엉뚱한 자리를 지운다</b>(2026-09-11 Rust 판에서 실제로 일어난 일).</p>
+    <pre><span class="cm">// 본문: "홍길동 😀 010-1234-5678"   ← 이모지는 코드포인트 1개 = UTF-16 2개 = UTF-8 4바이트</span>
+offsets   start  end   그 언어에서 자르기
+char        6     19   Python  text[6:19]
+utf16       7     20   Java    text.substring(7, 20)
+byte       15     28   PHP     substr($text, 15, 13)   ·  C++  text.substr(15, 13)</pre>
+    <p>PHP에서 <code class="inl">mb_substr</code>를 쓰고 싶으면 <code class="inl">offsets:"char"</code>를 주면 된다. 감싸개 기본값만 위 표대로 둔다.</p>
+
+    <h3>5-3. 같은 이름의 API</h3>
+    <p>언어 관례(대소문자)만 다르고 이름과 뜻은 같다. 문서와 시험을 한 벌로 쓰기 위해서다.</p>
+    <div class="twrap">
+      <table>
+        <thead><tr><th>기능</th><th>모양</th><th>설명</th></tr></thead>
+        <tbody>
+          <tr><td>불러오기</td><td class="mono">load(path = null)</td><td>찾는 순서: 인자 → 환경변수 <code class="inl">MOAIPII_LIB</code> → 감싸개·실행파일 옆과 <code class="inl">./lib</code> → 시스템. 불러온 직후 ABI를 비교하고, 다르면 실패시킨다</td></tr>
+          <tr><td>버전</td><td class="mono">version() · kopiiBasis()</td><td><code class="inl">"0.1.0+abc1234"</code> · <code class="inl">"1.15.2"</code></td></tr>
+          <tr><td>라벨 목록</td><td class="mono">labels()</td><td>지원 라벨과 별칭</td></tr>
+          <tr><td>검사</td><td class="mono">scan(text, labels, opts)</td><td>결과 객체 <code class="inl">{counts, items[label,start,end,value?]}</code>. opts는 <code class="inl">items · values · offsets · invalidUtf8 · today</code></td></tr>
+          <tr><td>원문 JSON</td><td class="mono">scanJson(text, labels, optsJson)</td><td>Jackson·nlohmann 등 자기 JSON 라이브러리로 읽고 싶은 쪽을 위한 것</td></tr>
+          <tr><td>오류</td><td class="mono">MoaiPiiException(kind, message)</td><td><code class="inl">kind</code> = arg · utf8 · failed · panic · load · abi. C++은 <code class="inl">moaipii::error</code>(<code class="inl">std::runtime_error</code> 상속)</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <pre><span class="cm">// Java</span>
+MoaiPii pii = MoaiPii.load();
+MoaiPii.Result r = pii.scan(text, Arrays.asList(<span class="hi">"RRN"</span>, <span class="hi">"PHONE"</span>));          <span class="cm">// 좌표 utf16</span>
+<span class="kw">for</span> (MoaiPii.Item it : r.items) masked.replace(it.start, it.end, <span class="hi">"***"</span>);  <span class="cm">// (뒤에서부터)</span>
+
+<span class="cm">// PHP</span>
+$pii = MoaiPii::load();
+$r   = $pii->scan($text, ['RRN', 'PHONE']);                               <span class="cm">// 좌표 byte</span>
+<span class="kw">foreach</span> (array_reverse($r['items']) <span class="kw">as</span> $it) $text = substr_replace($text, '***', $it['start'], $it['end'] - $it['start']);
+
+<span class="cm">// C++</span>
+<span class="kw">auto</span> pii = moaipii::Lib::load();
+<span class="kw">auto</span> r   = pii.scan(text, {<span class="hi">"RRN"</span>, <span class="hi">"PHONE"</span>});                             <span class="cm">// std::string_view 입력, 좌표 byte</span>
+<span class="kw">for</span> (<span class="kw">auto</span>&amp; [label, n] : r.counts) std::cout &lt;&lt; label &lt;&lt; <span class="hi">" "</span> &lt;&lt; n &lt;&lt; <span class="hi">"\n"</span>;</pre>
+
+    <h3>5-4. 언어별 주의</h3>
+    <div class="twrap">
+      <table>
+        <thead><tr><th>언어</th><th>주의</th><th>정한 방법</th></tr></thead>
+        <tbody>
+          <tr><td>Java</td><td>JNA에는 <code class="inl">size_t</code> 형이 없다</td><td>배포 대상이 x64 두 개뿐이므로 <code class="inl">long</code>으로 받는다. 감싸개가 불러올 때 <code class="inl">Native.SIZE_T_SIZE == 8</code>을 확인한다</td></tr>
+          <tr><td>Java</td><td>짝 없는 서로게이트</td><td><code class="inl">getBytes(UTF_8)</code>가 <code class="inl">?</code> 한 글자로 바꾼다. UTF-16 한 칸이 한 칸으로 남으므로 <code class="inl">utf16</code> 좌표가 맞는다</td></tr>
+          <tr><td>Java</td><td>본문 사본</td><td><code class="inl">byte[]</code>를 바로 넘긴다(JNA가 고정해 넘김). 호출 뒤 그 배열을 <code class="inl">Arrays.fill(0)</code>로 지운다</td></tr>
+          <tr><td>PHP</td><td>FFI가 켜져 있어야 한다</td><td>CLI는 기본 설정으로 된다. 웹(php-fpm·Apache)은 <code class="inl">ffi.enable=true</code> 또는 <code class="inl">opcache.preload</code>가 필요하다. 연동설명서에 적는다(DocParse와 같은 안내)</td></tr>
+          <tr><td>PHP</td><td>PHP 문자열은 UTF-8이 아닐 수 있다(EUC-KR 등)</td><td>감싸개 기본값을 <code class="inl">invalid_utf8:"replace"</code>로 둔다. byte 좌표는 원래 바이트를 가리키므로 <code class="inl">substr</code>가 그대로 맞는다. EUC-KR 본문은 부르는 쪽이 먼저 <code class="inl">mb_convert_encoding</code>으로 바꾸라고 설명서에 적는다</td></tr>
+          <tr><td>PHP</td><td><code class="inl">cdef</code>는 전처리기를 못 읽는다</td><td>docparse처럼 <code class="inl">moaipii.h</code>의 선언만 감싸개 안에 옮겨 둔다. 헤더가 바뀌면 함께 고치고, 공통 시험이 이를 잡는다</td></tr>
+          <tr><td>C++</td><td>링크형과 동적 로드형</td><td>기본은 링크형이다(Windows <code class="inl">moaipii.dll.lib</code>, Linux <code class="inl">-lmoaipii -Wl,-rpath,'$ORIGIN'</code>). <code class="inl">#define MOAIPII_DYNAMIC</code>이면 <code class="inl">LoadLibraryW</code>/<code class="inl">dlopen</code>으로 실행 중에 찾는다. 다른 언어 감싸개와 같은 동작이다</td></tr>
+          <tr><td>C++</td><td>메모리 해제</td><td><code class="inl">std::unique_ptr&lt;char, FreeFn&gt;</code>로 받아 예외가 나도 <code class="inl">moaipii_free</code>가 불린다</td></tr>
+          <tr><td>C++</td><td>JSON 해석기</td><td>외부 의존을 없애려고 결과 모양(<code class="inl">counts</code> 객체, <code class="inl">items</code> 배열)만 읽는 작은 해석기를 헤더에 넣는다. 일반 JSON은 <code class="inl">scanJson</code>으로 원문을 넘긴다</td></tr>
+          <tr><td>전부</td><td>스레드</td><td>라이브러리에 전역 상태가 없으므로 감싸개 객체 하나를 여러 스레드가 함께 써도 된다. 불러오기만 한 번(Java static·C++ 함수 내부 static·PHP 요청당 한 번)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>5-5. 공통 시험 — 다섯 감싸개가 같은 답을 내는가</h3>
+    <p><code class="inl">tests/bindings/cases.json</code>에 사례와 정답을 <b>한 번만</b> 적는다. 언어별 실행기 다섯 개가 같은 파일을 읽어 결과를 정해진 모양의 JSON으로 내고,
+    <code class="inl">tests/bindings/run_all.sh</code>가 정답과 비교한다. 본문은 NUL·깨진 UTF-8을 담을 수 있도록 base64로 적는다.</p>
+    <div class="twrap">
+      <table>
+        <thead><tr><th>사례</th><th>지키는 것</th></tr></thead>
+        <tbody>
+          <tr><td>본문 중간의 <code class="inl">\x00</code> 뒤 주민번호</td><td>(포인터, 길이) 전달 — 잘리지 않는다</td></tr>
+          <tr><td>이모지·한자 확장(4바이트 글자) 앞뒤의 전화번호</td><td><code class="inl">char</code>·<code class="inl">utf16</code>·<code class="inl">byte</code> 좌표가 각각 맞고, 그 언어로 자른 값이 같다</td></tr>
+          <tr><td>짝 없는 서로게이트 (Python·Java)</td><td>인코딩 실패 없이 좌표 유지</td></tr>
+          <tr><td>깨진 UTF-8 (PHP·C++)</td><td><code class="inl">error</code>면 <code class="inl">utf8</code> 오류, <code class="inl">replace</code>면 원래 바이트 좌표</td></tr>
+          <tr><td>빈 본문 · 빈 라벨 · 모르는 라벨</td><td>빈 결과 / <code class="inl">arg</code> 오류가 언어마다 같은 kind로 나온다</td></tr>
+          <tr><td>5MB 본문 · <code class="inl">items:false</code></td><td>건수만 받는 경로와 시간</td></tr>
+          <tr><td>8개 스레드 동시 호출 (Java·C++·Rust)</td><td>결과가 한 스레드일 때와 같다</td></tr>
+          <tr><td>ABI가 다른 가짜 라이브러리</td><td>불러오기 단계에서 <code class="inl">abi</code> 오류</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note warn"><span class="badge">빌드 환경</span>
+      <p><code class="inl">win-build.sh</code>·<code class="inl">linux-build.sh</code>가 묶음을 만든 뒤 공통 시험을 돌린다. JDK·PHP·C++ 컴파일러가 없는 언어는 <b>"건너뜀(java: javac 없음)"처럼 이름을 찍고</b> 넘어간다.
+      조용히 넘어가면 시험을 안 한 감싸개가 배포된다. 빌드서버(CentOS 7)에 JDK 8·PHP 7.4+FFI가 있는지는 1단계에서 확인한다.</p></div>
+  </section>
+
+  <!-- 6 -->
+  <section>
+    <div class="sec-head"><span class="sec-num">06</span><h2>MpowerClassify Rust 판에서 불러 쓰기</h2></div>
+    <p>바뀌는 곳은 <code class="inl">rules.rs</code>의 두 줄(<code class="inl">pii::pii_counts</code>, <code class="inl">pii::pii_records</code>)과 <code class="inl">main.rs</code>의 모듈 선언·버전 문자열뿐이다.</p>
+    <pre><span class="cm">// Rust/src/moaipii_dyn.rs (정본은 MoAI-pii bindings/rust — 직접 고치지 않음)</span>
+<span class="kw">pub struct</span> Scan { <span class="kw">pub</span> counts: HashMap&lt;String, u32&gt;, <span class="kw">pub</span> items: Vec&lt;Item&gt; }
+<span class="kw">pub struct</span> Item { <span class="kw">pub</span> label: String, <span class="kw">pub</span> start: usize, <span class="kw">pub</span> end: usize, <span class="kw">pub</span> value: Option&lt;String&gt; }
+<span class="kw">pub fn</span> lib() -&gt; Result&lt;&amp;'static MoaiPii, String&gt;       <span class="cm">// OnceLock: 실행파일 폴더 → 시스템 순으로 찾고 ABI 확인</span>
+<span class="kw">impl</span> MoaiPii {
+    <span class="kw">pub fn</span> scan(&amp;self, text: &amp;str, labels: &amp;HashSet&lt;String&gt;, opts: ScanOpts) -&gt; Result&lt;Scan, String&gt;;
+    <span class="kw">pub fn</span> version(&amp;self) -&gt; &amp;str;  <span class="kw">pub fn</span> kopii_basis(&amp;self) -&gt; &amp;str;
+}
+
+<span class="cm">// Rust/src/rules.rs — scan_text</span>
+<span class="hi">-</span> <span class="kw">let</span> counts = pii::pii_counts(text, &amp;wanted);
+<span class="ok">+</span> <span class="kw">let</span> counts = moaipii_dyn::lib()?.scan(text, &amp;wanted, ScanOpts { items: <span class="kw">false</span>, values: <span class="kw">false</span> })?.counts;
+
+<span class="cm">// Rust/src/rules.rs — collect_pii (--with-pii)</span>
+<span class="hi">-</span> pii::pii_records(text, &amp;wanted)
+<span class="ok">+</span> moaipii_dyn::lib()?.scan(text, &amp;wanted, ScanOpts { items: <span class="kw">true</span>, values: <span class="kw">true</span> })?.items</pre>
+    <ul class="plain">
+      <li><b>로드 실패</b> — 지금 Python 판이 ko-pii가 없을 때 하는 것처럼(A안, 폴백 없음) <b>시작할 때 한 번 확인하고 오류 코드로 끝낸다</b>. PII 없이 등급을 매기면 C 등급이 소리 없이 빠지기 때문이다. 오류 코드는 <code class="inl">errcodes</code>에 새로 하나 둔다(두 판 공통).</li>
+      <li><b>scan_text / collect_pii의 반환형</b> — 지금은 실패가 없는 함수다. <code class="inl">lib()</code>을 시작할 때 확인해 두면 이후 호출은 사실상 <code class="inl">MP_ERR_PANIC</code>뿐이다. 이 경우는 지금 파서 패닉과 같은 문서 단위 오류로 처리한다.</li>
+      <li><b>통합 시험 <code class="inl">Rust/examples/pii_bench.rs</code></b>는 MoAI-pii의 <code class="inl">mp.exe</code>로 대신한다. <code class="inl">tools/v10pii/bench/run_rs</code>도 그쪽을 부르게 바꾼다.</li>
+    </ul>
+  </section>
+
+  <!-- 7 -->
+  <section>
+    <div class="sec-head"><span class="sec-num">07</span><h2>MpowerClassify Python 판에서 불러 쓰기</h2></div>
+    <pre><span class="cm"># src/csoclassify/classify/rules.py — ko-pii 대신</span>
+<span class="kw">from</span> . <span class="kw">import</span> _moaipii   <span class="cm"># 정본: MoAI-pii bindings/python/moaipii.py</span>
+
+<span class="kw">def</span> _pii_scan(text, labels):
+    <span class="cm"># 라이브러리 한 번 호출 → [(label, start, end), ...]  (겹침 해소·문서 순서)</span>
+    <span class="kw">if not</span> text <span class="kw">or not</span> labels: <span class="kw">return</span> []
+    <span class="kw">return</span> _moaipii.scan(text, labels, items=<span class="kw">True</span>)[<span class="hi">"items"</span>]
+
+<span class="kw">def</span> _pii_counts(text, labels):          <span class="cm"># _kopii_counts 대체 — 같은 스캔에서 센다</span>
+<span class="kw">def</span> collect_pii(text, ruleset):          <span class="cm"># value = text[start:end] 로 직접 자른다(값이 경계를 넘지 않음)</span></pre>
+    <div class="twrap">
+      <table>
+        <thead><tr><th>곳</th><th>지금</th><th>바뀐 뒤</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">rules.py _kopii_scan · _kopii_counts</td><td>ko-pii + 보강 + 청크 + 100만 자 상한</td><td><code class="inl">_pii_scan</code> · <code class="inl">_pii_counts</code> (라이브러리 한 번)</td></tr>
+          <tr><td class="mono">rules.py superlinear_coverage<br>cli.py pii_scan_capped</td><td>상한에 걸리면 레코드에 <code class="inl">pii_scan_capped</code> 표시</td><td>상한이 없어진다. 함수는 늘 <code class="inl">(False, total, total)</code>을 돌려주게 두고, 다음 판에서 함수와 필드를 지운다(받는 쪽 호환)</td></tr>
+          <tr><td class="mono">CSOCLASSIFY_KOPII_* 환경변수</td><td>청크·상한 조정</td><td>무시한다. 설정되어 있으면 한 번 경고를 남긴다</td></tr>
+          <tr><td class="mono">cli.py _VersionAction</td><td><code class="inl">import ko_pii</code>로 버전 읽기(0.28초)</td><td><code class="inl">moaipii_version()</code> · <code class="inl">kopii_basis()</code></td></tr>
+          <tr><td class="mono">ui/rulesedit.py kopii_labels</td><td><code class="inl">ko_pii.labels.ALL_LABELS</code></td><td><code class="inl">moaipii_labels()</code> (실패 시 지금의 고정 목록)</td></tr>
+          <tr><td class="mono">daemon/server.py</td><td>스레드마다 GIL 안에서 순수 파이썬 검출</td><td>ctypes 호출 중에는 GIL이 풀려 <b>검출이 실제로 병렬</b>로 돈다</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>7-1. 전환 스위치 (임시)</h3>
+    <p><code class="inl">--extractor rust|py</code>를 둔 것처럼 <code class="inl">--pii-engine moaipii|kopii</code>(환경변수 <code class="inl">CSOCLASSIFY_PII_ENGINE</code>)를 <b>측정 기간에만</b> 둔다.
+    처음에는 기본값을 <code class="inl">kopii</code>로 두고 평가셋을 두 번 돌려 비교한다. 받아들이기로 하면 기본값을 <code class="inl">moaipii</code>로 바꾸고, 다음 판에서 <code class="inl">kopii</code> 갈래와 ko-pii 의존을 지운다.</p>
+  </section>
+
+  <!-- 8 -->
+  <section>
+    <div class="sec-head"><span class="sec-num">08</span><h2>판정이 바뀌는 곳 — Python 판만</h2></div>
+    <p>Rust 판은 같은 코드를 불러 쓰므로 <b>바뀌는 것이 없어야 한다</b>. Python 판은 엔진이 ko-pii에서 Rust 이식본으로 바뀌므로 아래 차이가 그대로 드러난다.</p>
+    <div class="twrap">
+      <table>
+        <thead><tr><th>차이</th><th>방향</th><th>근거</th><th>판단</th></tr></thead>
+        <tbody>
+          <tr><td>100만 자 넘는 문서의 전화·주소·계좌</td><td class="wn">더 잡힘</td><td>2026-09-04 1MB 초과 36건에서 477건 차이</td><td class="ok">바로잡히는 쪽. <code class="inl">pii_scan_capped</code>가 사라짐</td></tr>
+          <tr><td>1만 자 넘는 문서의 청크 경계 · 선형/초선형 갈래 겹침</td><td>조금 다름</td><td><code class="inl">_kopii_scan</code> 주석의 "드문 경우"</td><td>한 번에 스캔하므로 ko-pii <code class="inl">detect_all</code>과 더 가까워진다</td></tr>
+          <tr><td>D — 구분자 없는 줄의 EMAIL·IP 겹침 해소</td><td>다름</td><td>ko-pii 차이점 D (보류)</td><td>측정에서 건수를 세어 본다</td></tr>
+          <tr><td>C — <code class="inl">::ffff:1.2.3.4</code> 범위</td><td>범위만</td><td>건수 같음</td><td>판정 영향 없음</td></tr>
+          <tr><td>이식 과정의 미세 차이(골든에 안 걸린 것)</td><td>?</td><td>V10 비교 F1 93.1 대 92.5</td><td class="wn">측정으로 찾아야 한다</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>8-1. 측정</h3>
+    <ol class="plain">
+      <li><b>평가셋 500건 두 개</b>(기준 정답은 <code class="inl">…사람재검-01.xlsx</code>) — <code class="inl">--pii-engine kopii</code>와 <code class="inl">moaipii</code>로 각각 돌려, 등급이 바뀐 문서와 정밀도·재현율 변화를 본다.</li>
+      <li><b>D:\분류함</b> — 문서별 L1 히트 건수를 라벨별로 비교한다. 바뀐 문서는 사람이 보고 어느 쪽이 맞는지 분류한다.</li>
+      <li><b>V10 비교 시험</b>(<code class="inl">tools/v10pii/bench</code>) — MC-Py 점수가 MC-Rust와 같아져야 한다(같은 엔진이므로).</li>
+      <li><b>시간</b> — 평가셋 500건 전체 시간과 큰 문서(1MB 이상) 최악 시간을 잰다. Python 판은 빨라질 것으로 보지만 실제로 재서 적는다.</li>
+    </ol>
+    <div class="note info"><span class="badge">받아들이는 기준</span>
+      <p>사람 기준 정밀도·재현율이 <b>나빠지지 않고</b>, 바뀐 문서를 하나씩 봤을 때 Rust 판 쪽이 틀린 사례가 남아 있지 않으면 전환한다.
+      Rust 쪽이 틀린 사례가 나오면 MoAI-pii에서 고치고(두 판이 함께 고쳐진다) 다시 잰다.</p></div>
+  </section>
+
+  <!-- 9 -->
+  <section>
+    <div class="sec-head"><span class="sec-num">09</span><h2>작업 순서</h2></div>
+    <div class="twrap">
+      <table>
+        <thead><tr><th>#</th><th>단계</th><th>끝나는 조건</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td><b>MoAI-pii 뼈대</b> — workspace, 세 crate, scripts(DocParse-rust 복사), git 저장소</td><td><code class="inl">cargo build --release</code> 통과</td></tr>
+          <tr><td>2</td><td><b>본체 옮기기</b> — pii.rs·fold·districts, 단위 시험, 골든(corpus·json·gen 스크립트). <code class="inl">TODAY</code> → 호출마다 계산 + <code class="inl">today</code> 옵션</td><td>옮기기 전과 같은 <code class="inl">cargo test</code> 전부 통과</td></tr>
+          <tr><td>3</td><td><b>C 진입점 + Python·Rust 감싸개</b> — moaipii-ffi, moaipii.h(<code class="inl">offsets</code>·<code class="inl">invalid_utf8</code> 포함), 감싸개 두 개, mp.exe, ffi 왕복 시험(NUL 포함 본문·서로게이트·빈 본문·패닉)</td><td>Windows dll · Linux so 빌드, 묶음 생성</td></tr>
+          <tr><td>4</td><td><b>Java·PHP·C++ 감싸개</b> — MoaiPii.java·Json.java, MoaiPii.php, moaipii.hpp, 공통 시험(§5-5), 연동설명서. <span class="src">5·6단계와 따로 진행할 수 있다</span></td><td>다섯 감싸개가 <code class="inl">cases.json</code> 전부 통과(없는 도구는 이름 찍고 건너뜀)</td></tr>
+          <tr><td>5</td><td><b>MpowerClassify Rust 판 전환</b> — update-moaipii.sh, third_party, build.rs, rules.rs·main.rs, pii*.rs·districts*.rs 삭제</td><td>§10의 Rust 기준(결과 동일)</td></tr>
+          <tr><td>6</td><td><b>Python 판 연결</b> — _moaipii.py, <code class="inl">--pii-engine</code> 스위치(기본 kopii), spec·빌드 스크립트</td><td>두 엔진 모두 실행되고 시험 통과</td></tr>
+          <tr><td>7</td><td><b>측정</b> (§8-1) → 결과를 MoAI-pii <code class="inl">doc/</code>에 적음</td><td>받아들이는 기준 판단</td></tr>
+          <tr><td>8</td><td><b>Python 기본값 전환</b> → 다음 판에서 ko-pii·보강 코드·청크·스위치 삭제</td><td>requirements·spec에 ko-pii 없음</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 10 -->
+  <section>
+    <div class="sec-head"><span class="sec-num">10</span><h2>검증 기준</h2></div>
+    <div class="twrap">
+      <table>
+        <thead><tr><th>대상</th><th>기준</th></tr></thead>
+        <tbody>
+          <tr><td>MoAI-pii</td><td>단위 시험·골든 시험이 옮기기 전과 <b>같은 개수로</b> 통과. ffi 시험은 <code class="inl">mp.exe</code> 결과 = 라이브러리 내부 함수 결과</td></tr>
+          <tr><td>Rust 판</td><td>평가셋 1,000건과 D:\분류함 실행 결과에서 레코드의 <code class="inl">hits</code>·<code class="inl">grade</code>·<code class="inl">pii</code>(with-pii) 차이가 <b>0건</b>(시각·소요시간 필드 제외)</td></tr>
+          <tr><td>두 판 동등성</td><td><code class="inl">tests/test_pii_values_parity.py</code> — 지금은 "두 구현이 같은가"를 보지만, 이제는 "두 감싸개가 같은 라이브러리를 같은 좌표로 쓰는가"를 본다. HTML 추출 공백 차이는 지금처럼 제외</td></tr>
+          <tr><td>감싸개 5종</td><td><code class="inl">tests/bindings/run_all.sh</code> — Python·Rust·Java·PHP·C++ 실행기가 <code class="inl">cases.json</code>의 정답과 모두 같다. Windows와 Linux 양쪽에서 돌린다</td></tr>
+          <tr><td>Python 판</td><td>§8-1 받아들이는 기준</td></tr>
+          <tr><td>Linux</td><td>빌드서버에서 <code class="inl">objdump -T</code>로 확인한 요구 glibc가 2.17 이하. 운영 서버 실행 확인</td></tr>
+          <tr><td>배포본</td><td>PyInstaller onedir·Rust 배포 폴더 모두에 <code class="inl">moaipii.dll</code>/<code class="inl">.so</code>가 있고, <code class="inl">--version</code>에 같은 moaipii 판이 찍힘</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 11 -->
+  <section>
+    <div class="sec-head"><span class="sec-num">11</span><h2>이번에 하지 않는 것</h2></div>
+    <ul class="plain">
+      <li><b>ko-pii 1.22 판올림</b> — 기준은 1.15.2 그대로다. 판올림은 MoAI-pii에서 따로 검토한다(여권은 이미 같게 고쳐 둠).</li>
+      <li><b>D 차이 해결</b> — 측정에서 건수만 확인하고, 고치는 일은 별건으로 둔다.</li>
+      <li><b>새 라벨 · 검출 규칙 변경</b> — 옮기는 동안에는 결과를 바꾸지 않는다.</li>
+      <li><b>다른 제품에 실제로 붙이기, V10 <code class="inl">mpiisl.dll</code> 대체</b> — Java·PHP·C++ 감싸개와 시험까지만 이번에 만든다. 어느 제품에 붙일지는 따로 정한다.</li>
+      <li><b>Maven·Packagist 같은 패키지 저장소 등록</b> — 감싸개는 소스 파일로 묶음에 넣는다(docparse와 같음).</li>
+      <li><b>등급 판단을 라이브러리로 옮기기</b> — cso_rule.yaml·콤보·상한은 MpowerClassify 정책이라 남긴다.</li>
+    </ul>
+  </section>
+
+  <!-- 12 -->
+  <section>
+    <div class="sec-head"><span class="sec-num">12</span><h2>위험과 대응</h2></div>
+    <div class="twrap">
+      <table>
+        <thead><tr><th>위험</th><th>영향</th><th>대응</th></tr></thead>
+        <tbody>
+          <tr><td>Python 판 판정이 바뀐다</td><td class="wn">등급 변화</td><td>스위치를 두고 평가셋으로 잰 뒤 전환(§7-1, §8)</td></tr>
+          <tr><td>본문의 <code class="inl">\x00</code>에서 잘림</td><td class="x">소리 없는 미탐</td><td>(포인터, 길이) 인자. ffi 시험에 NUL 뒤 주민번호 사례를 넣음</td></tr>
+          <tr><td>좌표 어긋남(바이트/문자, 서로게이트)</td><td class="x">엉뚱한 자리 마스킹</td><td>언어마다 맞는 좌표 단위(char·utf16·byte, §5-2), Python <code class="inl">replace</code> 인코딩, 공통 시험에서 언어별로 잘라 낸 값 검산</td></tr>
+          <tr><td>Java·PHP·C++ 감싸개가 시험 없이 배포됨</td><td class="wn">다른 제품에서 오작동</td><td>공통 시험을 빌드 스크립트에 넣고, 도구가 없어 건너뛴 언어는 이름을 찍음</td></tr>
+          <tr><td>PHP FFI가 웹 환경에서 꺼져 있음</td><td>불러오기 실패</td><td><code class="inl">load</code> 오류 문장에 설정 방법을 넣고, 연동설명서에 적음</td></tr>
+          <tr><td>DLL이 없거나 판이 다름</td><td>실행 불가</td><td>시작할 때 확인 · ABI 비교 · 전용 오류 코드. 폴백 없음(PII 없는 등급은 더 위험)</td></tr>
+          <tr><td>원문 값 노출</td><td>프라이버시</td><td>기본 <code class="inl">values:false</code>, free 시 0 덮기, 라이브러리 로그 없음</td></tr>
+          <tr><td>골든 생성에 ko-pii가 계속 필요</td><td>개발 환경</td><td>MoAI-pii <code class="inl">tools/</code> 전용 의존으로 격리. 운영 묶음에는 없음</td></tr>
+          <tr><td>큰 문서에서 결과 JSON이 커짐(주소록)</td><td>메모리·시간</td><td>등급 경로는 <code class="inl">items:false</code>로 건수만 받음</td></tr>
+          <tr><td>장기 실행 데몬의 날짜가 낡음</td><td>미래 생년월일 오판</td><td>호출마다 날짜 계산(지금 Rust·데몬에도 있는 문제를 함께 고침)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 13 -->
+  <section>
+    <div class="sec-head"><span class="sec-num">13</span><h2>구현 결과 (2026-11-17) — 1~6단계</h2></div>
+    <div class="twrap">
+      <table>
+        <thead><tr><th>단계</th><th>결과</th></tr></thead>
+        <tbody>
+          <tr><td>1 뼈대</td><td class="ok">workspace·crate 3개·scripts·<code class="inl">git init</code>(커밋 전 — 판이 <code class="inl">0.1.0+nogit</code>)</td></tr>
+          <tr><td>2 본체</td><td class="ok">옮기기 전 PII 단위시험 23개가 이름 그대로 통과(골든 3개 포함), 새 시험 5개(좌표 단위·별칭·깨진 UTF-8·기준일·pii_records 동등) 통과. <code class="inl">TODAY</code> → 호출마다 계산 + <code class="inl">with_today</code></td></tr>
+          <tr><td>3 C 진입점</td><td class="ok">함수 6개, ffi 시험 6개(NUL·깨진 UTF-8·모르는 라벨·옵션 오류·값 선택·작은 함수) 통과. <code class="inl">moaipii.dll</code> 2.2MB · <code class="inl">mp.exe</code>. Windows 묶음 <code class="inl">dist/moaipii-0.1.0-nogit-windows-x64.zip</code></td></tr>
+          <tr><td>4 감싸개</td><td>공통 시험 17사례 — <span class="ok">py 17/17 · rs 16/16 · java 17/17 · cpp 16/16 · cpp-link 15/15</span> 같음. <span class="wn">php 는 이 PC 에 PHP 가 없어 건너뜀</span></td></tr>
+          <tr><td>5 Rust 판 전환</td><td class="ok">D:\분류함 4,129파일(문서 5,659건 · PII 값 43,337개, <code class="inl">--rule-only --with-pii</code>) 전환 전후 레코드가 <b>전부 같다</b>(다른 칸은 요약의 총 소요시간 하나). cargo test 250개 통과</td></tr>
+          <tr><td>6 Python 연결</td><td class="ok"><code class="inl">--pii-engine kopii|moaipii</code>(기본 kopii) · 1018 <code class="inl">pii_engine_missing</code> · 시험 9개 통과. D:\분류함\PII 16건 중 15건 같음, 다른 1건은 2.3MB <code class="inl">KDPII/train.txt</code>(kopii 100만 자 상한 — §8 예상대로)</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>13-1. 설계와 달라진 점</h3>
+    <ul class="plain">
+      <li><b>골든 자료 위치</b> — 저장소 <code class="inl">tests/</code>가 아니라 <code class="inl">crates/moaipii/tests/</code>에 두었다. 빌드서버에 <code class="inl">crates/</code>만 올려도 골든 시험이 돌게 하려는 것이다.</li>
+      <li><b>옵션 <code class="inl">unknown_labels</code></b> — 기본은 <code class="inl">error</code>다. MpowerClassify 두 판은 예전 Rust 판처럼 모르는 라벨을 0건으로 보도록 <code class="inl">ignore</code>를 쓴다. Python 판은 그 라벨을 처음 볼 때 한 번 경고로 남긴다.</li>
+      <li><b>MpowerClassify Rust 판</b> — <code class="inl">pii.rs</code>를 지우지 않고 라이브러리 창구로 바꿨다(<code class="inl">pii_counts</code>·<code class="inl">pii_records</code> 이름 유지). 그래서 <code class="inl">rules.rs</code>는 한 줄도 바뀌지 않았다. <code class="inl">--moaipii-lib</code> 인자와 <code class="inl">CSO_MOAIPII</code> 환경변수를 두고, 규칙셋에 PII 규칙이 있으면 문서를 읽기 전에 라이브러리를 불러 본다.</li>
+      <li><b>C++ 헤더 정본</b>은 <code class="inl">bindings/cpp/moaipii.hpp</code>에 두고, 묶음에서는 <code class="inl">include/</code>로 들어간다.</li>
+    </ul>
+    <h3>13-2. 남은 일</h3>
+    <ul class="plain">
+      <li>MoAI-pii 첫 커밋 → 버전에 git 해시가 붙은 묶음으로 다시 빌드 → <code class="inl">update-moaipii.sh</code></li>
+      <li>Linux: <code class="inl">scripts/linux-build.sh</code>로 <code class="inl">libmoaipii.so</code>를 만들고, 빌드서버에서 감싸개 공통 시험을 돌린다(JDK·PHP FFI·devtoolset g++ 확인). MpowerClassify의 <code class="inl">linux-build.sh</code>는 <code class="inl">third_party/moaipii/linux-x64</code>가 있어야 돈다.</li>
+      <li>PHP 감싸개 실제 시험(PHP 7.4+ FFI가 있는 곳)</li>
+      <li>7단계 측정(평가셋 2개 · 분류함 · V10 비교) → 8단계 Python 기본값 전환 · ko-pii 삭제 · <code class="inl">ui/rulesedit.kopii_labels</code>를 <code class="inl">moaipii_labels</code>로</li>
+      <li><code class="inl">tools/v10pii/bench/run_rs.py</code>는 지운 <code class="inl">Rust/examples/pii_bench.rs</code>를 쓴다 → <code class="inl">mp scan</code>으로 바꿔야 한다(gitignore된 도구 폴더)</li>
+    </ul>
+  </section>
+
+  <footer>
+    <span>MoAI-pii · 개인정보 검출 엔진 라이브러리 분리 설계 (1편 · 개정 1 — Java·PHP·C++ 감싸개 추가 · 구현 결과)</span>
+    <span>2026-11-17</span>
+  </footer>
+</div>
+</body>
+</html>

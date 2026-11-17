@@ -1,0 +1,599 @@
+{
+ "_note": "tests/bindings/make_cases.py 가 만든다 — 손으로 고치지 말 것",
+ "cases": [
+  {
+   "name": "좌표_char",
+   "labels": [
+    "PHONE"
+   ],
+   "opts": {
+    "items": true,
+    "values": true,
+    "invalid_utf8": "error",
+    "unknown_labels": "error",
+    "today": null,
+    "offsets": "char"
+   },
+   "expect": {
+    "code": 0,
+    "counts": {
+     "PHONE": 1
+    },
+    "items": [
+     {
+      "label": "PHONE",
+      "value": "010-1234-5678",
+      "start": 6,
+      "end": 19
+     }
+    ]
+   },
+   "langs": [
+    "py",
+    "rs",
+    "java",
+    "php",
+    "cpp",
+    "cpp-link"
+   ],
+   "text_b64": "7ZmN6ri464+ZIPCfmIAgMDEwLTEyMzQtNTY3OA=="
+  },
+  {
+   "name": "좌표_utf16",
+   "labels": [
+    "PHONE"
+   ],
+   "opts": {
+    "items": true,
+    "values": true,
+    "invalid_utf8": "error",
+    "unknown_labels": "error",
+    "today": null,
+    "offsets": "utf16"
+   },
+   "expect": {
+    "code": 0,
+    "counts": {
+     "PHONE": 1
+    },
+    "items": [
+     {
+      "label": "PHONE",
+      "value": "010-1234-5678",
+      "start": 7,
+      "end": 20
+     }
+    ]
+   },
+   "langs": [
+    "py",
+    "rs",
+    "java",
+    "php",
+    "cpp",
+    "cpp-link"
+   ],
+   "text_b64": "7ZmN6ri464+ZIPCfmIAgMDEwLTEyMzQtNTY3OA=="
+  },
+  {
+   "name": "좌표_byte",
+   "labels": [
+    "PHONE"
+   ],
+   "opts": {
+    "items": true,
+    "values": true,
+    "invalid_utf8": "error",
+    "unknown_labels": "error",
+    "today": null,
+    "offsets": "byte"
+   },
+   "expect": {
+    "code": 0,
+    "counts": {
+     "PHONE": 1
+    },
+    "items": [
+     {
+      "label": "PHONE",
+      "value": "010-1234-5678",
+      "start": 15,
+      "end": 28
+     }
+    ]
+   },
+   "langs": [
+    "py",
+    "rs",
+    "java",
+    "php",
+    "cpp",
+    "cpp-link"
+   ],
+   "text_b64": "7ZmN6ri464+ZIPCfmIAgMDEwLTEyMzQtNTY3OA=="
+  },
+  {
+   "name": "NUL_뒤",
+   "labels": [
+    "PHONE"
+   ],
+   "opts": {
+    "items": true,
+    "values": true,
+    "invalid_utf8": "error",
+    "unknown_labels": "error",
+    "today": null,
+    "offsets": "byte"
+   },
+   "expect": {
+    "code": 0,
+    "counts": {
+     "PHONE": 1
+    },
+    "items": [
+     {
+      "label": "PHONE",
+      "value": "010-1234-5678",
+      "start": 15,
+      "end": 28
+     }
+    ]
+   },
+   "langs": [
+    "py",
+    "rs",
+    "java",
+    "php",
+    "cpp",
+    "cpp-link"
+   ],
+   "text_b64": "aGVhZADsl7Drnb3sspggMDEwLTEyMzQtNTY3OA=="
+  },
+  {
+   "name": "깨진UTF8_오류",
+   "labels": [
+    "PHONE"
+   ],
+   "opts": {
+    "items": true,
+    "values": true,
+    "invalid_utf8": "error",
+    "unknown_labels": "error",
+    "today": null,
+    "offsets": "byte"
+   },
+   "expect": {
+    "code": 2,
+    "kind": "utf8"
+   },
+   "langs": [
+    "py",
+    "rs",
+    "java",
+    "php",
+    "cpp",
+    "cpp-link"
+   ],
+   "text_b64": "/yDsoITtmZQgMDEwLTEyMzQtNTY3OA=="
+  },
+  {
+   "name": "깨진UTF8_고침",
+   "labels": [
+    "PHONE"
+   ],
+   "opts": {
+    "items": true,
+    "values": true,
+    "invalid_utf8": "replace",
+    "unknown_labels": "error",
+    "today": null,
+    "offsets": "byte"
+   },
+   "expect": {
+    "code": 0,
+    "counts": {
+     "PHONE": 1
+    },
+    "items": [
+     {
+      "label": "PHONE",
+      "value": "010-1234-5678",
+      "start": 9,
+      "end": 22
+     }
+    ]
+   },
+   "langs": [
+    "py",
+    "rs",
+    "java",
+    "php",
+    "cpp",
+    "cpp-link"
+   ],
+   "text_b64": "/yDsoITtmZQgMDEwLTEyMzQtNTY3OA=="
+  },
+  {
+   "name": "짝없는_서로게이트",
+   "labels": [
+    "PHONE"
+   ],
+   "opts": {
+    "items": true,
+    "values": true,
+    "invalid_utf8": "error",
+    "unknown_labels": "error",
+    "today": null,
+    "offsets": "char"
+   },
+   "expect": {
+    "code": 0,
+    "counts": {
+     "PHONE": 1
+    },
+    "items": [
+     {
+      "label": "PHONE",
+      "value": "010-1234-5678",
+      "start": 2,
+      "end": 15
+     }
+    ]
+   },
+   "langs": [
+    "py",
+    "java"
+   ],
+   "text_u16": [
+    55296,
+    32,
+    48,
+    49,
+    48,
+    45,
+    49,
+    50,
+    51,
+    52,
+    45,
+    53,
+    54,
+    55,
+    56
+   ]
+  },
+  {
+   "name": "겹침_해소",
+   "labels": [
+    "BUSINESS_REG",
+    "PHONE"
+   ],
+   "opts": {
+    "items": true,
+    "values": true,
+    "invalid_utf8": "error",
+    "unknown_labels": "error",
+    "today": null,
+    "offsets": "byte"
+   },
+   "expect": {
+    "code": 0,
+    "counts": {
+     "BUSINESS_REG": 1,
+     "PHONE": 1
+    },
+    "items": [
+     {
+      "label": "BUSINESS_REG",
+      "start": 10,
+      "end": 22,
+      "value": "022-00-76422"
+     },
+     {
+      "label": "PHONE",
+      "value": "010-1234-5678",
+      "start": 30,
+      "end": 43
+     }
+    ]
+   },
+   "langs": [
+    "py",
+    "rs",
+    "java",
+    "php",
+    "cpp",
+    "cpp-link"
+   ],
+   "text_b64": "7IKs7JeF7J6QIDAyMi0wMC03NjQyMiDsl7Drnb0gMDEwLTEyMzQtNTY3OA=="
+  },
+  {
+   "name": "빈_본문",
+   "labels": [
+    "PHONE"
+   ],
+   "opts": {
+    "items": true,
+    "values": true,
+    "invalid_utf8": "error",
+    "unknown_labels": "error",
+    "today": null,
+    "offsets": "byte"
+   },
+   "expect": {
+    "code": 0,
+    "counts": {},
+    "items": []
+   },
+   "langs": [
+    "py",
+    "rs",
+    "java",
+    "php",
+    "cpp",
+    "cpp-link"
+   ],
+   "text_b64": ""
+  },
+  {
+   "name": "모르는_라벨_오류",
+   "labels": [
+    "NOPE"
+   ],
+   "opts": {
+    "items": true,
+    "values": true,
+    "invalid_utf8": "error",
+    "unknown_labels": "error",
+    "today": null,
+    "offsets": "byte"
+   },
+   "expect": {
+    "code": 1,
+    "kind": "arg"
+   },
+   "langs": [
+    "py",
+    "rs",
+    "java",
+    "php",
+    "cpp",
+    "cpp-link"
+   ],
+   "text_b64": "eA=="
+  },
+  {
+   "name": "모르는_라벨_무시",
+   "labels": [
+    "NOPE",
+    "PHONE"
+   ],
+   "opts": {
+    "items": true,
+    "values": true,
+    "invalid_utf8": "error",
+    "unknown_labels": "ignore",
+    "today": null,
+    "offsets": "byte"
+   },
+   "expect": {
+    "code": 0,
+    "counts": {
+     "PHONE": 1
+    },
+    "items": [
+     {
+      "label": "PHONE",
+      "value": "010-1234-5678",
+      "start": 0,
+      "end": 13
+     }
+    ],
+    "unknown": [
+     "NOPE"
+    ]
+   },
+   "langs": [
+    "py",
+    "rs",
+    "java",
+    "php",
+    "cpp",
+    "cpp-link"
+   ],
+   "text_b64": "MDEwLTEyMzQtNTY3OA=="
+  },
+  {
+   "name": "건수만",
+   "labels": [
+    "EMAIL"
+   ],
+   "opts": {
+    "items": false,
+    "values": true,
+    "invalid_utf8": "error",
+    "unknown_labels": "error",
+    "today": null,
+    "offsets": "byte"
+   },
+   "expect": {
+    "code": 0,
+    "counts": {
+     "EMAIL": 1
+    },
+    "items": []
+   },
+   "langs": [
+    "py",
+    "rs",
+    "java",
+    "php",
+    "cpp",
+    "cpp-link"
+   ],
+   "text_b64": "66mU7J28IGEuYkBleGFtcGxlLmNvLmty"
+  },
+  {
+   "name": "기준일_2026",
+   "labels": [
+    "RRN"
+   ],
+   "opts": {
+    "items": true,
+    "values": false,
+    "invalid_utf8": "error",
+    "unknown_labels": "error",
+    "today": "2026-11-17",
+    "offsets": "byte"
+   },
+   "expect": {
+    "code": 0,
+    "counts": {},
+    "items": []
+   },
+   "langs": [
+    "py",
+    "rs",
+    "java",
+    "php",
+    "cpp",
+    "cpp-link"
+   ],
+   "text_b64": "7KO866+865Ox66Gd67KI7Zi4IDMwMDEwMS0zMDAwMDAy"
+  },
+  {
+   "name": "기준일_2031",
+   "labels": [
+    "RRN"
+   ],
+   "opts": {
+    "items": true,
+    "values": false,
+    "invalid_utf8": "error",
+    "unknown_labels": "error",
+    "today": "2031-01-01",
+    "offsets": "byte"
+   },
+   "expect": {
+    "code": 0,
+    "counts": {
+     "RRN": 1
+    },
+    "items": [
+     {
+      "label": "RRN",
+      "start": 19,
+      "end": 33
+     }
+    ]
+   },
+   "langs": [
+    "py",
+    "rs",
+    "java",
+    "php",
+    "cpp",
+    "cpp-link"
+   ],
+   "text_b64": "7KO866+865Ox66Gd67KI7Zi4IDMwMDEwMS0zMDAwMDAy"
+  },
+  {
+   "name": "큰_본문_건수만",
+   "labels": [
+    "PHONE"
+   ],
+   "opts": {
+    "items": false,
+    "values": true,
+    "invalid_utf8": "error",
+    "unknown_labels": "error",
+    "today": null,
+    "offsets": "byte"
+   },
+   "expect": {
+    "code": 0,
+    "counts": {
+     "PHONE": 200000
+    },
+    "items": []
+   },
+   "langs": [
+    "py",
+    "rs",
+    "java",
+    "php",
+    "cpp",
+    "cpp-link"
+   ],
+   "text_b64": "7Jew65297LKYIDAxMC0xMjM0LTU2NzgK",
+   "repeat": 200000
+  },
+  {
+   "name": "동시_호출",
+   "labels": [
+    "BUSINESS_REG",
+    "PHONE"
+   ],
+   "opts": {
+    "items": true,
+    "values": false,
+    "invalid_utf8": "error",
+    "unknown_labels": "error",
+    "today": null,
+    "offsets": "byte"
+   },
+   "expect": {
+    "code": 0,
+    "counts": {
+     "BUSINESS_REG": 1,
+     "PHONE": 1
+    },
+    "items": [
+     {
+      "label": "BUSINESS_REG",
+      "start": 10,
+      "end": 22
+     },
+     {
+      "label": "PHONE",
+      "start": 30,
+      "end": 43
+     }
+    ]
+   },
+   "langs": [
+    "py",
+    "rs",
+    "java",
+    "cpp",
+    "cpp-link"
+   ],
+   "text_b64": "7IKs7JeF7J6QIDAyMi0wMC03NjQyMiDsl7Drnb0gMDEwLTEyMzQtNTY3OA==",
+   "threads": 8
+  },
+  {
+   "name": "ABI_다름",
+   "labels": [],
+   "opts": {
+    "items": true,
+    "values": true,
+    "invalid_utf8": "error",
+    "unknown_labels": "error",
+    "today": null
+   },
+   "expect": {
+    "code": -1,
+    "kind": "abi"
+   },
+   "langs": [
+    "py",
+    "rs",
+    "java",
+    "php",
+    "cpp"
+   ],
+   "text_b64": "",
+   "fake_abi": true
+  }
+ ]
+}

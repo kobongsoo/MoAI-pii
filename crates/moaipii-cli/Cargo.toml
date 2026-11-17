@@ -1,0 +1,17 @@
+[package]
+name = "moaipii-cli"
+# 버전은 moaipii-ffi 와 같게 둔다 — mp version 이 이 값을 라이브러리 버전으로 보여 준다.
+version = "0.1.0"
+edition = "2021"
+description = "mp.exe — moaipii 시험 도구. DLL 과 같은 C 진입점 소스를 그대로 넣어 텍스트를 검사한다."
+# FFI 와 같은 빌드 스크립트 — 버전 문자열의 git 해시(MOAIPII_GIT)를 똑같이 새긴다.
+build = "../moaipii-ffi/build.rs"
+
+[[bin]]
+name = "mp"
+path = "src/main.rs"
+
+[dependencies]
+# FFI 소스(crates/moaipii-ffi/src/lib.rs)를 모듈로 그대로 넣으므로 그쪽 의존을 똑같이 둔다.
+moaipii = { path = "../moaipii" }
+serde_json = "1"

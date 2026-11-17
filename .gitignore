@@ -1,0 +1,9 @@
+/target
+/dist
+*.pyc
+__pycache__/
+/scripts/server.env
+*.class
+/work/
+/tests/private/
+/tests/bindings/out/

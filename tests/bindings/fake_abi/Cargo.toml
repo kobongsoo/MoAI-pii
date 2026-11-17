@@ -1,0 +1,14 @@
+# 감싸개 공통 시험용 '가짜' 라이브러리 — moaipii_abi_version() 만 있고 999 를 돌려준다.
+# 감싸개가 판이 다른 라이브러리를 불러오기 단계에서 막는지 본다(사례 ABI_다름).
+# 작업공간(루트 Cargo.toml)과 따로 빌드한다.
+[package]
+name = "moaipii-fake-abi"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[lib]
+name = "moaipii_fake"
+crate-type = ["cdylib"]
+
+[workspace]

@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>moaipii 연동 설명서</title>
+</head>
+<body>
+<style>
+  :root{
+    --bg:#f4f6f9; --surface:#ffffff; --surface-2:#eef1f6; --ink:#191d24;
+    --muted:#58616e; --faint:#8b94a2; --line:#dde2ea; --line-strong:#c7cfda;
+    --accent:#26437e; --accent-2:#365fb0; --accent-soft:#e7edf7;
+    --c:#cf3b2e; --c-soft:#fbeceb; --s:#b3760f; --s-soft:#f9f0dc; --o:#2f8f57; --o-soft:#e6f3ea;
+    --shadow:0 1px 2px rgba(20,30,50,.04), 0 8px 24px rgba(20,30,50,.06);
+    --sans:"Pretendard Variable",Pretendard,"Malgun Gothic","맑은 고딕",-apple-system,"Apple SD Gothic Neo",system-ui,sans-serif;
+    --mono:ui-monospace,"Cascadia Code","Cascadia Mono",Consolas,"D2Coding",monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --bg:#0e1116; --surface:#161b22; --surface-2:#1d232c; --ink:#e7ebf1;
+      --muted:#9aa4b2; --faint:#6b7684; --line:#262d38; --line-strong:#333c49;
+      --accent:#7ea0e8; --accent-2:#8fb0f2; --accent-soft:#182233;
+      --c:#f2695c; --c-soft:#2a1715; --s:#e6a748; --s-soft:#271e10; --o:#57bd85; --o-soft:#122217;
+      --shadow:0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="light"]{
+    --bg:#f4f6f9; --surface:#ffffff; --surface-2:#eef1f6; --ink:#191d24;
+    --muted:#58616e; --faint:#8b94a2; --line:#dde2ea; --line-strong:#c7cfda;
+    --accent:#26437e; --accent-2:#365fb0; --accent-soft:#e7edf7;
+    --c:#cf3b2e; --c-soft:#fbeceb; --s:#b3760f; --s-soft:#f9f0dc; --o:#2f8f57; --o-soft:#e6f3ea;
+  }
+  :root[data-theme="dark"]{
+    --bg:#0e1116; --surface:#161b22; --surface-2:#1d232c; --ink:#e7ebf1;
+    --muted:#9aa4b2; --faint:#6b7684; --line:#262d38; --line-strong:#333c49;
+    --accent:#7ea0e8; --accent-2:#8fb0f2; --accent-soft:#182233;
+    --c:#f2695c; --c-soft:#2a1715; --s:#e6a748; --s-soft:#271e10; --o:#57bd85; --o-soft:#122217;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+    line-height:1.7;-webkit-font-smoothing:antialiased;font-size:16px;letter-spacing:-0.003em;}
+  .wrap{max-width:1000px;margin:0 auto;padding:0 24px 96px;}
+  header.doc{padding:56px 0 34px;border-bottom:1px solid var(--line);margin-bottom:40px;}
+  .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--accent);font-weight:600;display:flex;gap:10px;align-items:center;margin-bottom:20px;}
+  .eyebrow::before{content:"";width:26px;height:2px;background:var(--accent);border-radius:2px;}
+  h1.title{font-size:clamp(28px,4.6vw,44px);line-height:1.12;margin:0 0 14px;font-weight:800;
+    letter-spacing:-0.02em;text-wrap:balance;}
+  .lede{font-size:clamp(16px,2.1vw,19px);color:var(--muted);margin:0 0 22px;max-width:64ch;}
+  .lede b{color:var(--ink);font-weight:600;}
+  .meta{display:flex;flex-wrap:wrap;gap:8px;}
+  .chip{font-size:12px;font-family:var(--mono);color:var(--muted);background:var(--surface);
+    border:1px solid var(--line);border-radius:999px;padding:5px 12px;}
+  .chip b{color:var(--ink);font-weight:600;}
+  section{margin:52px 0;scroll-margin-top:20px;}
+  .sec-head{display:flex;align-items:baseline;gap:14px;margin-bottom:22px;}
+  .sec-num{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--accent);
+    border:1px solid var(--line-strong);border-radius:7px;padding:3px 9px;flex:none;line-height:1.3;}
+  h2{font-size:clamp(21px,3vw,27px);margin:0;font-weight:750;letter-spacing:-0.015em;line-height:1.25;}
+  h3{font-size:17px;margin:30px 0 12px;font-weight:700;letter-spacing:-0.01em;}
+  p{margin:0 0 15px;max-width:72ch;}
+  ul.plain{margin:0 0 15px;padding-left:20px;} ul.plain li{margin:5px 0;color:var(--muted);}
+  ul.plain li b{color:var(--ink);font-weight:600;}
+  ol.plain{margin:0 0 15px;padding-left:22px;} ol.plain li{margin:6px 0;color:var(--muted);}
+  ol.plain li b{color:var(--ink);font-weight:600;}
+  .tldr{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--accent);
+    border-radius:12px;padding:22px 24px;box-shadow:var(--shadow);}
+  .tldr .k{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--accent);font-weight:700;margin-bottom:10px;}
+  .tldr p{margin:0;font-size:17px;color:var(--ink);max-width:none;}
+  .tldr b{color:var(--accent-2);}
+  .twrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);margin:16px 0;}
+  table{border-collapse:collapse;width:100%;font-size:14px;min-width:640px;background:var(--surface);}
+  th,td{text-align:left;padding:10px 13px;border-bottom:1px solid var(--line);vertical-align:top;}
+  thead th{background:var(--surface-2);font-size:12px;letter-spacing:.03em;color:var(--muted);
+    text-transform:uppercase;font-weight:700;white-space:nowrap;}
+  tbody tr:last-child td{border-bottom:none;}
+  td.mono,.mono-cell{font-family:var(--mono);font-size:13px;white-space:nowrap;}
+  code.inl{font-family:var(--mono);font-size:.9em;background:var(--surface-2);border:1px solid var(--line);
+    border-radius:5px;padding:1px 6px;}
+  pre{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 20px;
+    overflow-x:auto;font-family:var(--mono);font-size:13px;line-height:1.65;box-shadow:var(--shadow);color:var(--ink);}
+  pre .cm{color:var(--o);} pre .kw{color:var(--accent-2);font-weight:600;} pre .hi{color:var(--c);font-weight:600;}
+  .note{border:1px solid var(--line);background:var(--surface-2);border-radius:12px;padding:16px 18px;
+    font-size:14.5px;display:flex;gap:12px;align-items:flex-start;margin:16px 0;}
+  .note .badge{font-family:var(--mono);font-size:10.5px;font-weight:800;letter-spacing:.06em;
+    padding:3px 8px;border-radius:6px;flex:none;text-transform:uppercase;white-space:nowrap;}
+  .note.safe .badge{color:var(--o);background:var(--o-soft);border:1px solid color-mix(in srgb,var(--o) 35%,transparent);}
+  .note.warn .badge{color:var(--s);background:var(--s-soft);border:1px solid color-mix(in srgb,var(--s) 35%,transparent);}
+  .note.bad .badge{color:var(--c);background:var(--c-soft);border:1px solid color-mix(in srgb,var(--c) 35%,transparent);}
+  .note.info .badge{color:var(--accent-2);background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent-2) 35%,transparent);}
+  .note p{margin:0;color:var(--muted);max-width:none;}
+  .note b{color:var(--ink);}
+  .x{color:var(--c);font-weight:700}
+  .ok{color:var(--o);font-weight:700}
+  .wn{color:var(--s);font-weight:700}
+  .src{font-family:var(--mono);font-size:12px;color:var(--faint);}
+  .fig{background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);
+    padding:18px;margin:16px 0;overflow-x:auto;}
+  .fig svg{display:block;min-width:680px;width:100%;height:auto;}
+  .fig text{font-family:var(--sans);fill:var(--ink);font-size:13px;}
+  .fig .t-mono{font-family:var(--mono);font-size:11.5px;fill:var(--muted);}
+  .fig .t-h{font-weight:700;font-size:14px;}
+  .fig .box{fill:var(--surface-2);stroke:var(--line-strong);}
+  .fig .box-a{fill:var(--accent-soft);stroke:var(--accent-2);}
+  .fig .ln{stroke:var(--muted);stroke-width:1.4;fill:none;}
+  .fig .ln-d{stroke:var(--faint);stroke-width:1.2;fill:none;stroke-dasharray:5 4;}
+  .fig .ah{fill:var(--muted);}
+  footer{margin-top:64px;padding-top:24px;border-top:1px solid var(--line);
+    font-size:13px;color:var(--faint);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;
+    font-family:var(--mono);letter-spacing:.02em;}
+  @media print{ body{background:#fff;} .tldr,pre,.twrap,.fig{box-shadow:none;} }
+  .warn{color:var(--s);font-weight:700}
+</style>
+
+<div class="wrap">
+  <header class="doc">
+    <div class="eyebrow">연동 설명서 · moaipii 0.1</div>
+    <h1 class="title">moaipii 연동 설명서<br>— Python · Rust · Java · PHP · C++</h1>
+    <p class="lede">한국어 개인정보 검출 라이브러리 <code class="inl">moaipii.dll</code> / <code class="inl">libmoaipii.so</code>를 각 언어에서 불러 쓰는 방법입니다.
+    모든 언어가 <b>같은 C 함수</b>를 부르므로 결과도 같습니다. 다른 점은 <b>좌표를 세는 단위</b>뿐입니다.</p>
+    <div class="meta">
+      <span class="chip"><b>ABI</b> 1</span>
+      <span class="chip"><b>검출 기준</b> ko-pii 1.15.2 + 보강</span>
+      <span class="chip"><b>라벨</b> 20개 + 별칭 1</span>
+    </div>
+  </header>
+
+  <section>
+    <div class="sec-head"><span class="sec-num">01</span><h2>묶음 구성</h2></div>
+    <pre>moaipii-&lt;버전&gt;-&lt;플랫폼&gt;/
+├─ lib/        moaipii.dll · moaipii.dll.lib(Windows, C++ 링크용) · mp.exe   또는   libmoaipii.so · mp
+├─ include/    moaipii.h (C) · moaipii.hpp (C++)
+├─ bindings/   python/moaipii.py · rust/moaipii_dyn.rs · java/moaipii/*.java · php/MoaiPii.php
+├─ doc/        이 설명서
+└─ VERSION · CHANGELOG.md · README.md · SHA256SUMS</pre>
+    <p>라이브러리는 다른 .so·.dll에 기대지 않습니다. 파일 하나만 옮기면 됩니다. 감싸개는 모두 <b>환경변수 <code class="inl">MOAIPII_LIB</code></b>(파일 또는 폴더)로 위치를 알려 줄 수 있습니다.</p>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="sec-num">02</span><h2>좌표 단위 — 가장 중요한 것</h2></div>
+    <p>결과의 <code class="inl">start</code>·<code class="inl">end</code>는 <code class="inl">[start, end)</code>입니다. 단위는 옵션 <code class="inl">offsets</code>로 고르며, <b>감싸개마다 자기 언어에 맞는 기본값</b>을 씁니다.</p>
+    <pre><span class="cm">// 본문: "홍길동 😀 010-1234-5678"   ← 이모지는 코드포인트 1 = UTF-16 2 = UTF-8 4바이트</span>
+offsets   start  end   자르기
+char        6     19   Python  text[6:19]
+utf16       7     20   Java    text.substring(7, 20)
+byte       15     28   PHP     substr($text, 15, 13)   ·  C++  text.substr(15, 13)</pre>
+    <div class="note warn"><span class="badge">주의</span><p>단위를 섞으면 오류 없이 <b>엉뚱한 자리를 지웁니다</b>. 기본값을 바꿀 때는 자르는 함수도 함께 바꾸세요.
+    마스킹할 때는 위치가 밀리지 않도록 <b>뒤에서부터</b> 바꿉니다.</p></div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="sec-num">03</span><h2>옵션과 결과</h2></div>
+    <div class="twrap"><table>
+      <thead><tr><th>옵션</th><th>값</th><th>뜻</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">labels</td><td>문자열 배열(필수)</td><td>켤 라벨. 목록은 <code class="inl">labels()</code> / <code class="inl">mp labels</code></td></tr>
+        <tr><td class="mono">items</td><td>true</td><td>false면 건수만 받습니다(큰 문서에서 결과가 작아짐)</td></tr>
+        <tr><td class="mono">values</td><td>false</td><td>true면 위치마다 원문 값도 싣습니다. 보통은 좌표로 직접 자르면 되므로 필요 없습니다</td></tr>
+        <tr><td class="mono">offsets</td><td>char · utf16 · byte</td><td>좌표 단위(§2)</td></tr>
+        <tr><td class="mono">invalid_utf8</td><td>error · replace</td><td>본문이 UTF-8이 아닐 때 오류를 낼지, 깨진 바이트 묶음을 U+FFFD 한 글자로 보고 검사할지 정합니다. replace여도 byte 좌표는 <b>넘긴 원래 바이트</b>를 가리킵니다</td></tr>
+        <tr><td class="mono">unknown_labels</td><td>error · ignore</td><td>모르는 라벨을 오류로 볼지, 무시하고 결과 <code class="inl">unknown</code>에 알려 줄지 정합니다</td></tr>
+        <tr><td class="mono">today</td><td>null · "YYYY-MM-DD"</td><td>미래 생년월일을 판단하는 기준일. null이면 시스템 날짜를 씁니다</td></tr>
+      </tbody>
+    </table></div>
+    <pre>{ "chars": 37,
+  "counts": { "PHONE": 1, "RRN": 1 },
+  "items":  [ { "label": "PHONE", "start": 7, "end": 20 }, { "label": "RRN", "start": 23, "end": 37 } ] }</pre>
+    <p>실패하면 언어별 예외가 납니다. <code class="inl">kind</code> = <code class="inl">arg</code>(인자·옵션) · <code class="inl">utf8</code>(본문이 UTF-8 아님) · <code class="inl">panic</code>(내부 오류) · <code class="inl">load</code>(라이브러리를 못 찾음) · <code class="inl">abi</code>(판이 다름).</p>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="sec-num">04</span><h2>언어별 사용</h2></div>
+    <h3>Python (3.8+, 표준 라이브러리만)</h3>
+    <pre><span class="kw">import</span> moaipii                                   <span class="cm"># bindings/python/moaipii.py 를 복사</span>
+r = moaipii.scan(text, [<span class="hi">"RRN"</span>, <span class="hi">"PHONE"</span>])            <span class="cm"># 좌표 char → text[s:e]</span>
+<span class="kw">for</span> it <span class="kw">in</span> reversed(r[<span class="hi">"items"</span>]):
+    text = text[:it[<span class="hi">"start"</span>]] + <span class="hi">"***"</span> + text[it[<span class="hi">"end"</span>]:]</pre>
+    <p>ctypes 호출 중에는 GIL이 풀리므로, 여러 스레드에서 부르면 실제로 병렬로 돕니다. PyInstaller로 묶을 때는 DLL을 묶음 최상위(<code class="inl">_MEIPASS</code>)에 두면 찾습니다.</p>
+
+    <h3>Rust (libloading 0.8 · serde_json 1)</h3>
+    <pre><span class="kw">let</span> pii = MoaiPii::find_and_load(<span class="kw">None</span>, <span class="hi">"MOAIPII_LIB"</span>)?;          <span class="cm">// bindings/rust/moaipii_dyn.rs</span>
+<span class="kw">let</span> r = pii.scan(text, &amp;labels, &amp;ScanOpts::default())?;            <span class="cm">// 좌표 char</span></pre>
+
+    <h3>Java (8+, JNA 5.14)</h3>
+    <pre>MoaiPii pii = MoaiPii.load();                                     <span class="cm">// MOAIPII_LIB → -Dmoaipii.lib → ./lib → ./ → 시스템</span>
+MoaiPii.Result r = pii.scan(text, Arrays.asList(<span class="hi">"RRN"</span>, <span class="hi">"PHONE"</span>));     <span class="cm">// 좌표 utf16 → substring</span></pre>
+    <p>64비트 JVM이 필요합니다(<code class="inl">size_t</code>를 <code class="inl">long</code>으로 받습니다). <code class="inl">scanBytes</code>는 넘긴 <code class="inl">byte[]</code>를 호출이 끝나면 0으로 지웁니다.</p>
+
+    <h3>PHP (7.4+, FFI)</h3>
+    <pre>require <span class="hi">'MoaiPii.php'</span>;
+$pii = MoaiPii::load();
+$r   = $pii->scan($text, [<span class="hi">'RRN'</span>, <span class="hi">'PHONE'</span>]);                          <span class="cm">// 좌표 byte → substr</span></pre>
+    <ul class="plain">
+      <li>CLI는 <code class="inl">extension=ffi</code>만 켜면 됩니다. 웹(php-fpm·Apache)은 <code class="inl">ffi.enable=true</code> 또는 <code class="inl">opcache.preload</code>가 필요합니다.</li>
+      <li>감싸개 기본값은 <code class="inl">invalid_utf8: "replace"</code>입니다. EUC-KR 본문은 먼저 <code class="inl">mb_convert_encoding($s, 'UTF-8', 'EUC-KR')</code>로 바꿔서 넘기세요.</li>
+    </ul>
+
+    <h3>C++ (17, 헤더 하나)</h3>
+    <pre><span class="cm">// 링크형(기본)</span>
+<span class="cm">//   Windows: cl /std:c++17 /EHsc /utf-8 app.cpp /I include lib\moaipii.dll.lib</span>
+<span class="cm">//   Linux  : g++ -std=c++17 app.cpp -I include -L lib -lmoaipii -Wl,-rpath,'$ORIGIN'</span>
+<span class="cm">// 동적 로드형: #define MOAIPII_DYNAMIC 을 include 앞에 (Linux 는 -ldl)</span>
+<span class="kw">#include</span> <span class="hi">"moaipii.hpp"</span>
+<span class="kw">auto</span> pii = moaipii::Lib::load();
+<span class="kw">auto</span> r   = pii.scan(text, {<span class="hi">"RRN"</span>, <span class="hi">"PHONE"</span>});                           <span class="cm">// 좌표 byte → substr</span></pre>
+    <p>CentOS 7의 기본 g++(4.8)은 C++17을 못 합니다. devtoolset의 g++를 쓰세요.</p>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="sec-num">05</span><h2>안전 규칙</h2></div>
+    <ul class="plain">
+      <li><b>본문은 (포인터, 길이)</b>로 넘깁니다. 본문 속 <code class="inl">\0</code>에서 잘리지 않습니다.</li>
+      <li><b>원문 값은 요청할 때만</b>(<code class="inl">values:true</code>) 경계를 넘습니다. 라이브러리는 결과 문자열을 해제할 때 0으로 덮고, 로그를 남기지 않습니다.</li>
+      <li><b>스레드</b>: 라이브러리에 전역 상태가 없습니다. 한 번 불러온 객체를 여러 스레드가 함께 써도 됩니다.</li>
+      <li><b>판 확인</b>: 감싸개는 불러온 직후 <code class="inl">moaipii_abi_version()</code>을 비교하고, 다르면 <code class="inl">abi</code> 오류를 냅니다.</li>
+    </ul>
+  </section>
+
+  <footer>
+    <span>MoAI-pii · moaipii 연동 설명서</span>
+    <span>2026-11-17</span>
+  </footer>
+</div>
+</body>
+</html>

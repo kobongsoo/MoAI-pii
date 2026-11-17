@@ -1,0 +1,15 @@
+[package]
+name = "moaipii-ffi"
+version = "0.1.0"
+edition = "2021"
+description = "moaipii 의 C 진입점 — moaipii.dll / libmoaipii.so. 옵션·결과는 UTF-8 JSON 으로 주고받는다."
+build = "build.rs"
+
+[lib]
+# 산출 파일 이름을 moaipii.dll / libmoaipii.so 로 맞춘다(크레이트 이름은 moaipii-ffi).
+name = "moaipii"
+crate-type = ["cdylib"]
+
+[dependencies]
+moaipii = { path = "../moaipii" }
+serde_json = "1"

@@ -1,0 +1,4 @@
+# 시험 자료는 바이트 그대로 둔다 — 줄 끝(CRLF/LF)이 바뀌면 좌표가 OS 마다 달라진다
+crates/moaipii/tests/** -text
+tests/bindings/** -text
+*.sh text eol=lf

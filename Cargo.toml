@@ -1,0 +1,18 @@
+# MoAI-pii — 한국어 개인정보(PII) 검출 라이브러리 (MpowerClassify 에서 떼어 낸 독립 프로젝트)
+#
+#   crates/moaipii      본체(Rust 라이브러리). 검출기 20라벨·정규화·겹침 해소·좌표 단위 변환
+#   crates/moaipii-ffi  C 진입점 → moaipii.dll / libmoaipii.so (다른 프로그램이 불러 쓰는 형태)
+#   crates/moaipii-cli  시험 도구 → mp.exe / mp (C 진입점을 그대로 거쳐 텍스트를 검사한다)
+#
+# 설계: plan/MoAI-pii-개인정보검출-라이브러리분리-설계-20261117.html
+[workspace]
+members = ["crates/moaipii", "crates/moaipii-ffi", "crates/moaipii-cli"]
+resolver = "2"
+
+# 배포 라이브러리는 릴리스 빌드로 만든다. 패닉은 unwind 여야 C 경계에서 잡을 수 있다(abort 금지).
+[profile.release]
+opt-level = 3
+lto = true
+strip = true
+codegen-units = 1
+panic = "unwind"
