@@ -146,9 +146,10 @@
   </header>
 
   <nav class="toc" aria-label="목차">
+    <p style="margin:0 0 10px;max-width:none"><a href="#utf8"><b>⚠ 중요 — 본문은 UTF-8 만 받습니다</b></a></p>
     <ol>
       <li><a href="#s1">묶음 구성</a></li>
-      <li><a href="#s2">빠른 시작 — 샘플 CLI로 DLL 확인</a></li>
+      <li><a href="#s2">빠른 시작 — 시험 도구로 DLL 확인</a></li>
       <li><a href="#s3">좌표 단위</a></li>
       <li><a href="#s4">옵션과 결과</a></li>
       <li><a href="#s5">검출 항목 한눈에</a></li>
@@ -160,55 +161,89 @@
     </ol>
   </nav>
 
+  <!-- ───────────────────────── 00 ───────────────────────── -->
+  <section id="utf8">
+    <div class="sec-head"><span class="sec-num">!</span><h2>중요 — 본문은 UTF-8 만 받습니다</h2></div>
+    <div class="note bad"><span class="badge">필수</span><p>라이브러리에 넘기는 본문은 <b>UTF-8 텍스트</b>여야 합니다. ANSI(CP949·EUC-KR)나 UTF-16(메모장의 "유니코드") 파일, docx·hwp·pdf 같은 문서 파일을 <b>그대로 넘기면 검출되지 않습니다</b>. 부르는 쪽에서 먼저 UTF-8 텍스트로 바꿔서 넘기세요.</p></div>
+    <div class="twrap"><table>
+      <thead><tr><th>넘긴 본문</th><th>결과</th><th>같은 내용 실측</th></tr></thead>
+      <tbody>
+        <tr><td>UTF-8</td><td class="ok">정상 검출</td><td>RRN · PHONE · ACCOUNT · ADDRESS 4건</td></tr>
+        <tr><td>UTF-8 BOM</td><td class="ok">정상 검출</td><td>4건. 단 BOM(U+FEFF)도 한 글자라 <b>좌표가 1칸 밀림</b> — BOM 을 붙인 본문 그대로 잘라야 맞음</td></tr>
+        <tr><td>ANSI (CP949 · EUC-KR)</td><td class="x">오류 kind=utf8</td><td>—</td></tr>
+        <tr><td>ANSI + <code class="inl">invalid_utf8:"replace"</code></td><td class="wn">일부만</td><td>2건(RRN · PHONE). 한글이 깨진 글자로 바뀌어 "계좌번호"·"주소는" 문맥이 사라짐 → 계좌·주소 놓침</td></tr>
+        <tr><td>UTF-16 (메모장 "유니코드")</td><td class="x">오류 kind=utf8</td><td>—</td></tr>
+        <tr><td>docx · xlsx · hwp · pdf 파일</td><td class="x">오류 kind=utf8</td><td>압축·이진 파일이라 텍스트가 아님 — 텍스트를 뽑은 뒤 넘김</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>왜 UTF-8 만 받나</h3>
+    <ol class="plain">
+      <li><b>바이트만 보고는 인코딩을 확실히 알 수 없습니다.</b> 파일에는 "나는 CP949" 같은 표시가 없습니다. <code class="inl">C8 AB B1 E6 B5 BF</code>는 CP949 로 읽으면 "홍길동", Latin-1 로 읽으면 <code class="inl">È«±æµ¿</code>입니다. 라이브러리가 추측하면 틀렸을 때 <b>오류 없이 조용히 놓칩니다</b> — 개인정보 검출에서 가장 위험한 실패라, 확실하지 않으면 멈추게 했습니다.</li>
+      <li><b>좌표가 어긋납니다.</b> 결과 좌표는 넘긴 본문 기준입니다. 한글 한 글자는 CP949 로 2바이트, UTF-8 로 3바이트라서, 라이브러리 안에서 바꿔 검사하면 byte 좌표가 원래 파일과 맞지 않아 마스킹이 <b>엉뚱한 자리</b>를 지웁니다.</li>
+      <li><b>연동하는 언어는 이미 유니코드로 일합니다.</b> Python <code class="inl">str</code> · Java <code class="inl">String</code> · C#·JS 문자열 · Rust <code class="inl">&amp;str</code>는 모두 유니코드라 UTF-8 로 넘기는 비용이 거의 없고, 파일 인코딩은 그 파일을 읽는 쪽이 가장 잘 압니다.</li>
+      <li><b>검출기 자체가 유니코드 기준입니다.</b> 정규식(Rust <code class="inl">regex</code>는 UTF-8 에서만 동작), 한글 범위·사건부호·법정동/국가 사전, 전각→반각 정규화표가 모두 유니코드라, 다른 인코딩을 받아도 결국 안에서 UTF-8 로 바꿔야 합니다.</li>
+      <li><b>ko-pii 와 같은 결과</b>를 보장하기 위해서입니다. 기준인 ko-pii(Python)도 유니코드 문자열을 받고, 정답표도 그 기준입니다.</li>
+      <li><b>작고 단순한 라이브러리.</b> CP949·EUC-KR·UTF-16LE/BE·조합형 변환표를 넣으면 크기와 시험 부담이 커집니다. "본문 = UTF-8 바이트 (포인터, 길이)" 한 규칙이라 다섯 언어 감싸개가 똑같이 움직입니다.</li>
+    </ol>
+
+    <h3>ANSI 파일은 이렇게 넘깁니다</h3>
+    <pre><span class="cm"># Python</span>
+text = open(path, encoding=<span class="hi">"cp949"</span>).read();  r = moaipii.scan(text, labels)
+<span class="cm">// Java</span>
+String text = <span class="kw">new</span> String(Files.readAllBytes(p), <span class="hi">"MS949"</span>);
+<span class="cm">// PHP</span>
+$text = mb_convert_encoding(file_get_contents($p), <span class="hi">'UTF-8'</span>, <span class="hi">'CP949'</span>);
+<span class="cm">:: 파일 하나만 시험할 때 — 메모장 "다른 이름으로 저장 → 인코딩: UTF-8", Word 는 "일반 텍스트(.txt) · UTF-8"</span></pre>
+    <div class="note warn"><span class="badge">주의</span><p><code class="inl">invalid_utf8:"replace"</code>는 ANSI 파일의 해결책이 아닙니다. UTF-8 문서 중간에 <b>일부만</b> 깨진 바이트가 섞였을 때 그 부분만 건너뛰고 검사하는 옵션입니다.</p></div>
+  </section>
+
   <!-- ───────────────────────── 01 ───────────────────────── -->
   <section id="s1">
     <div class="sec-head"><span class="sec-num">01</span><h2>묶음 구성</h2></div>
     <pre>moaipii-&lt;버전&gt;-&lt;플랫폼&gt;/
-├─ lib/        moaipii.dll · moaipii.dll.lib(Windows, C/C++ 링크용) · mp.exe   또는   libmoaipii.so · mp
+├─ lib/        moaipii.dll · moaipii.dll.lib(C/C++ 링크용) · moaipii-test.exe · mp.exe     ← Windows
+│              libmoaipii.so · moaipii-test · mp                                          ← Linux
 ├─ include/    moaipii.h (C) · moaipii.hpp (C++)
 ├─ bindings/   python/moaipii.py · rust/moaipii_dyn.rs · java/moaipii/*.java · php/MoaiPii.php
-├─ samples/    python/moaipii_cli.py   ← DLL 시험용 CLI (§2)
-├─ doc/        이 설명서
+├─ doc/        moaipii-guide.html (이 설명서) · moaipii-test-guide.html (시험 도구 사용설명서)
 └─ VERSION · CHANGELOG.md · README.md · SHA256SUMS</pre>
     <p>라이브러리는 다른 .so·.dll에 기대지 않습니다. 파일 하나만 옮기면 됩니다. 감싸개는 모두 <b>환경변수 <code class="inl">MOAIPII_LIB</code></b>(파일 또는 폴더)로 위치를 알려 줄 수 있습니다.
     감싸개 파일(<code class="inl">bindings/…</code>)은 쓰는 프로젝트에 <b>복사해 두고 고치지 않습니다</b>. 새 판이 나오면 DLL과 감싸개를 함께 바꿉니다.</p>
     <div class="twrap"><table>
-      <thead><tr><th>도구</th><th>무엇을 부르나</th><th>언제 쓰나</th></tr></thead>
+      <thead><tr><th>도구 (lib/)</th><th>무엇을 부르나</th><th>언제 쓰나</th></tr></thead>
       <tbody>
-        <tr><td class="mono">lib/mp.exe</td><td>C 진입점 소스를 실행파일 안에 넣어 만든 것(DLL 파일을 읽지 않음)</td><td>검출 결과만 빨리 보고 싶을 때</td></tr>
-        <tr><td class="mono">samples/python/moaipii_cli.py</td><td><b>배포된 DLL 파일을</b> Python 감싸개로 불러 씀</td><td>DLL이 이 PC·서버에서 실제로 열리는지, 연동하는 쪽과 같은 길로 시험할 때</td></tr>
+        <tr><td class="mono">moaipii-test(.exe)</td><td><b>같은 폴더의 DLL·.so 파일을 실행 중에 불러</b> 씀(Rust 감싸개 그대로)</td><td>받은 묶음이 이 PC·서버에서 제대로 도는지 확인 — <b>연동 전에 먼저</b>. 사용법은 <code class="inl">doc/moaipii-test-guide.html</code></td></tr>
+        <tr><td class="mono">mp(.exe)</td><td>C 진입점 소스를 실행파일 안에 넣어 만든 개발용 도구(DLL 파일을 읽지 않음)</td><td>결과 JSON 만 빨리 보고 싶을 때</td></tr>
       </tbody>
     </table></div>
   </section>
 
   <!-- ───────────────────────── 02 ───────────────────────── -->
   <section id="s2">
-    <div class="sec-head"><span class="sec-num">02</span><h2>빠른 시작 — 샘플 CLI로 DLL 확인</h2></div>
-    <p>Python 3.8 이상만 있으면 됩니다(표준 라이브러리만 씀). 묶음을 푼 폴더에서 바로 실행하면 <code class="inl">lib/</code>의 DLL을 찾아 씁니다.</p>
-    <pre><span class="cm"># 1) 불러온 DLL 경로 · 버전 · ABI</span>
-python samples/python/moaipii_cli.py info
+    <div class="sec-head"><span class="sec-num">02</span><h2>빠른 시작 — 시험 도구로 DLL 확인</h2></div>
+    <p>설치할 것이 없습니다. 묶음을 푼 폴더에서 실행하면 같은 <code class="inl">lib/</code>의 DLL을 불러 씁니다. Linux 는 <code class="inl">lib/moaipii-test</code>로 같은 명령을 씁니다.</p>
+    <pre><span class="cm">:: 1) 불러온 DLL 경로 · 버전 · ABI</span>
+lib\moaipii-test.exe info
 
-<span class="cm"># 2) 연동 전 점검 한 번에 — 라벨별 예문 20개 · 좌표 3단위 · 옵션·오류 · 8스레드 동시 호출</span>
-python samples/python/moaipii_cli.py selftest          <span class="cm"># 끝줄 "결과: 15 / 15 통과" 면 정상, 실패 시 종료코드 1</span>
+<span class="cm">:: 2) 연동 전 점검 — 라벨별 예문 20개 · 좌표 3단위 · 옵션·오류 · today · 8스레드 동시 호출</span>
+lib\moaipii-test.exe selftest          <span class="cm">:: 끝줄 "결과: 16 / 16 통과" 면 정상, 실패 시 종료코드 1</span>
 
-<span class="cm"># 3) 문장·파일 검사</span>
-python samples/python/moaipii_cli.py scan --text <span class="hi">"홍길동 010-1234-5678, hong@example.co.kr"</span>
-python samples/python/moaipii_cli.py scan 본문.txt --labels RRN,PHONE,CARD --hide-values
-python samples/python/moaipii_cli.py scan 본문.txt --offsets utf16 --json        <span class="cm"># DLL 결과 JSON 그대로</span>
-python samples/python/moaipii_cli.py scan 옛문서.txt --encoding cp949            <span class="cm"># EUC-KR 문서</span>
+<span class="cm">:: 3) 문장·파일 검사</span>
+lib\moaipii-test.exe scan --text <span class="hi">"홍길동 010-1234-5678, hong@example.co.kr"</span>
+lib\moaipii-test.exe scan 본문.txt --labels RRN,PHONE,CARD --hide-values
+lib\moaipii-test.exe scan 본문.txt --offsets utf16 --json      <span class="cm">:: DLL 결과 JSON 그대로</span>
 
-<span class="cm"># 4) 가린 본문 만들기 — star(*) · label([PHONE]) · keep(앞 3글자 남김)</span>
-python samples/python/moaipii_cli.py mask 본문.txt --style label --out 가린본문.txt
+<span class="cm">:: 4) 가린 본문 · 5) 속도</span>
+lib\moaipii-test.exe mask 본문.txt --style label --out 가린본문.txt
+lib\moaipii-test.exe bench 큰본문.txt --repeat 100 --threads 4
 
-<span class="cm"># 5) 속도</span>
-python samples/python/moaipii_cli.py bench 큰본문.txt --repeat 100 --threads 4
-
-<span class="cm"># DLL을 다른 곳에서 쓰려면</span>
-python samples/python/moaipii_cli.py --lib D:\pii\moaipii.dll info              <span class="cm"># 또는 set MOAIPII_LIB=D:\pii</span></pre>
+<span class="cm">:: 운영 앱이 쓰는 DLL 을 시험하려면</span>
+lib\moaipii-test.exe --lib C:\MyApp\bin\moaipii.dll selftest</pre>
     <pre><span class="cm"># scan 출력 예</span>
-본문 57자 · 라벨 20개 · 0.41 ms · 좌표 단위 char
+본문 57자 (87 바이트) · 라벨 20개 · 0.41 ms · 좌표 단위 char
 
-[건수]
+[건수] 합계 3
   ADDRESS            1
   EMAIL              1
   PHONE              1
@@ -218,17 +253,7 @@ python samples/python/moaipii_cli.py --lib D:\pii\moaipii.dll info              
   PHONE                     4       17  010-1234-5678
   EMAIL                    19       37  hong@example.co.kr
   ADDRESS                  39       57  서울특별시 강남구 테헤란로 152</pre>
-    <div class="twrap"><table>
-      <thead><tr><th>종료코드</th><th>뜻</th></tr></thead>
-      <tbody>
-        <tr><td class="mono">0</td><td>성공(검출 0건도 성공)</td></tr>
-        <tr><td class="mono">1</td><td>demo·selftest 에서 실패한 시험이 있음</td></tr>
-        <tr><td class="mono">2</td><td>명령줄 인자 오류</td></tr>
-        <tr><td class="mono">3</td><td>감싸개 moaipii.py 를 못 찾음(환경변수 <code class="inl">MOAIPII_PY</code>로 폴더 지정)</td></tr>
-        <tr><td class="mono">4</td><td>라이브러리 오류 — <code class="inl">kind=load|abi|arg|utf8|panic</code> 이 함께 찍힙니다</td></tr>
-      </tbody>
-    </table></div>
-    <div class="note info"><span class="badge">팁</span><p>Linux 서버에서도 같은 명령이 그대로 돕니다(<code class="inl">libmoaipii.so</code>를 찾음). 서버에 올린 직후 <b>selftest 한 번</b>이면 라이브러리 열기·ABI·스레드까지 확인됩니다.</p></div>
+    <div class="note info"><span class="badge">팁</span><p>서버에 올린 직후 <b>selftest 한 번</b>이면 라이브러리 열기·ABI·스레드까지 확인됩니다. 명령·옵션·종료 코드·배치 스크립트 연동은 <b><code class="inl">doc/moaipii-test-guide.html</code></b>(moaipii-test 사용설명서)에 있습니다.</p></div>
   </section>
 
   <!-- ───────────────────────── 03 ───────────────────────── -->
@@ -725,7 +750,7 @@ r = moaipii.scan(text, list(POLICY))
 
     <h3>⑤ 큰 문서·인코딩</h3>
     <ul class="plain">
-      <li><b>문서는 통째로 한 번에</b> 넘깁니다. 줄·쪽 단위로 쪼개면 경계에 걸친 번호(줄바꿈 낀 주소·표의 계좌 칸)를 놓치고, 표 머리줄 문맥도 사라집니다. 검사 시간은 본문 길이에 비례합니다(<code class="inl">moaipii_cli.py bench</code>로 확인).</li>
+      <li><b>문서는 통째로 한 번에</b> 넘깁니다. 줄·쪽 단위로 쪼개면 경계에 걸친 번호(줄바꿈 낀 주소·표의 계좌 칸)를 놓치고, 표 머리줄 문맥도 사라집니다. 검사 시간은 본문 길이에 비례합니다(<code class="inl">moaipii-test bench</code>로 확인).</li>
       <li>EUC-KR(cp949) 문서는 먼저 UTF-8로 바꿉니다. 인코딩을 모르는 바이너리 섞인 텍스트는 <code class="inl">invalid_utf8:"replace"</code>로 넘기면 깨진 곳만 건너뛰고 검사합니다.</li>
       <li>HWP·DOCX·PDF는 이 라이브러리가 읽지 않습니다. 텍스트를 뽑은 뒤 넘기세요. 표를 뽑을 때 칸 구분자(탭)를 살려 두면 계좌 표 검출(§6 ACCOUNT)이 동작합니다.</li>
     </ul>
@@ -765,7 +790,7 @@ r = moaipii.scan(text, list(POLICY))
         <tr><td><code class="inl">load</code> 오류 — 찾을 수 없음</td><td>감싸개가 찾는 위치에 DLL이 없음</td><td><code class="inl">MOAIPII_LIB</code>에 파일·폴더 지정. 오류 메시지에 찾아본 경로가 모두 나옵니다</td></tr>
         <tr><td><code class="inl">load</code> 오류 — 열지 못함 / 잘못된 이미지</td><td>32비트 프로세스(JVM·PHP·Python)에서 64비트 DLL을 엶</td><td>64비트 런타임 사용. Linux는 x86_64 · glibc 2.17 이상</td></tr>
         <tr><td><code class="inl">abi</code> 오류</td><td>DLL과 감싸개가 서로 다른 묶음</td><td>같은 묶음의 DLL·감싸개를 함께 교체</td></tr>
-        <tr><td><code class="inl">arg</code> — 모르는 라벨</td><td>오타, 또는 더 옛 판 DLL</td><td><code class="inl">moaipii_cli.py labels</code>로 확인, 또는 <code class="inl">unknown_labels:"ignore"</code></td></tr>
+        <tr><td><code class="inl">arg</code> — 모르는 라벨</td><td>오타, 또는 더 옛 판 DLL</td><td><code class="inl">moaipii-test labels</code>로 확인, 또는 <code class="inl">unknown_labels:"ignore"</code></td></tr>
         <tr><td><code class="inl">utf8</code> 오류</td><td>EUC-KR·바이너리 본문</td><td>UTF-8로 변환하거나 <code class="inl">invalid_utf8:"replace"</code></td></tr>
         <tr><td>마스킹 자리가 조금씩 밀림</td><td>좌표 단위와 자르는 함수 단위가 다름, 또는 앞에서부터 바꿈</td><td>§3 표대로 맞추고, items를 거꾸로 돌며 바꿈</td></tr>
         <tr><td>BOM 붙은 파일에서 1칸 밀림</td><td>BOM(U+FEFF)도 한 글자로 셈</td><td>Python은 <code class="inl">utf-8-sig</code>로 읽기, 다른 언어는 BOM을 떼고 넘기기(또는 좌표에 그대로 쓰기 — 둘 중 하나로 일관되게)</td></tr>

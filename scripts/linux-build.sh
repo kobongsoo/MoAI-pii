@@ -4,9 +4,10 @@
 #=> 이 PC(Windows)에서 실행한다. 빌드서버에서 만들어야 오래된 리눅스(glibc 2.17)에서도 돈다.
 #    1) 접속 정보 읽기 — scripts/server.env 의 SSH_ENV_FILE(KEY=VALUE 파일: SSH_SERVER·SSH_USER_ID·SSH_USER_PWD)
 #    2) 소스 묶음(Cargo.toml·Cargo.lock·crates·include·bindings·tests/bindings) 올리기
-#    3) 빌드서버에서 cargo test --workspace · cargo build --release -p moaipii-ffi -p moaipii-cli
-#       요구 glibc 가 2.17 이하인지 확인, mp 로 한 건 검사, 감싸개 공통 시험(없는 도구는 건너뜀)
-#    4) libmoaipii.so · mp 를 받아 scripts/package.py 로 dist/moaipii-<버전>-linux-x64.tgz
+#    3) 빌드서버에서 cargo test --workspace · cargo build --release -p moaipii-ffi -p moaipii-cli -p moaipii-test
+#       요구 glibc 가 2.17 이하인지 확인, mp 로 한 건 검사, moaipii-test selftest(.so 를 실제로 불러 전 항목),
+#       감싸개 공통 시험(없는 도구는 건너뜀)
+#    4) libmoaipii.so · mp · moaipii-test 를 받아 scripts/package.py 로 dist/moaipii-<버전>-linux-x64.tgz
 #
 #   사용: bash scripts/linux-build.sh   (Git Bash · PuTTY 의 plink/pscp 필요)
 #   설정: scripts/server.env (scripts/server.env.sample 참고, .gitignore 로 막혀 있다)
@@ -82,7 +83,7 @@ cd "$MP_BUILD_DIR"
 rm -rf crates include bindings tests Cargo.toml Cargo.lock
 tar xzf mpsrc.tgz
 cargo test --workspace --release > test.log 2>&1 || { tail -30 test.log; echo "cargo test 실패 — $MP_BUILD_DIR/test.log"; exit 1; }
-cargo build --release -p moaipii-ffi -p moaipii-cli > build.log 2>&1 || { tail -30 build.log; echo "cargo build 실패 — $MP_BUILD_DIR/build.log"; exit 1; }
+cargo build --release -p moaipii-ffi -p moaipii-cli -p moaipii-test > build.log 2>&1 || { tail -30 build.log; echo "cargo build 실패 — $MP_BUILD_DIR/build.log"; exit 1; }
 f=target/release/libmoaipii.so
 [ -f \$f ] || { echo "빌드 결과가 없습니다: \$f"; exit 1; }
 # 요구하는 glibc 기호 버전 중 가장 높은 것 — 2.17 을 넘으면 CentOS 7 에서 못 뜬다.
@@ -99,6 +100,14 @@ echo "  mp 최고 요구 glibc: \$gd"
 printf '연락처 010-1234-5678\n' > mp_smoke.txt
 \$d scan mp_smoke.txt --labels PHONE | grep -q '"PHONE":1' || { echo "mp scan 실패"; exit 1; }
 echo "  \$(\$d version)"
+# 배포 시험 도구 — 같은 glibc 상한, 옆의 libmoaipii.so 를 실제로 불러 전 항목 통과
+t=target/release/moaipii-test
+[ -f \$t ] || { echo "빌드 결과가 없습니다: \$t"; exit 1; }
+gt=\$(objdump -T \$t | grep -o 'GLIBC_[0-9.]*' | sort -t. -k2 -n -u | tail -1)
+echo "  moaipii-test 최고 요구 glibc: \$gt"
+\$t version | grep -q "$VERSION" || { echo "moaipii-test version 이 $VERSION 이 아닙니다: \$(\$t version)"; exit 1; }
+MOAIPII_LIB= \$t selftest > selftest.log 2>&1 || { tail -25 selftest.log; echo "moaipii-test selftest 실패"; exit 1; }
+echo "  moaipii-test \$(tail -1 selftest.log)"
 # 감싸개 공통 시험 — 빌드서버에 없는 언어 도구는 이름을 찍고 건너뛴다
 MOAIPII_LIB="\$PWD/\$f" bash tests/bindings/run_all.sh || { echo "감싸개 공통 시험 실패"; exit 1; }
 EOF
@@ -109,6 +118,8 @@ pscp -batch -q -pw "$PW" "$USER_ID@$HOST:$MP_BUILD_DIR/target/release/libmoaipii
     || die "libmoaipii.so 내려받기 실패"
 pscp -batch -q -pw "$PW" "$USER_ID@$HOST:$MP_BUILD_DIR/target/release/mp" target/linux-x64/ \
     || die "mp 내려받기 실패"
+pscp -batch -q -pw "$PW" "$USER_ID@$HOST:$MP_BUILD_DIR/target/release/moaipii-test" target/linux-x64/ \
+    || die "moaipii-test 내려받기 실패"
 
 step "묶기"
-python scripts/package.py linux-x64 target/linux-x64/libmoaipii.so "$VERSION" target/linux-x64/mp
+python scripts/package.py linux-x64 target/linux-x64/libmoaipii.so "$VERSION" target/linux-x64/mp target/linux-x64/moaipii-test

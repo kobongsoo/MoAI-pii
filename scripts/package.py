@@ -2,9 +2,10 @@
 #------------------------------------------------------------------
 # 배포 묶음 만들기 — moaipii-<버전>-<플랫폼>.zip / .tgz
 #=> 빌드한 라이브러리 파일 하나를 받아, 쓰는 프로젝트가 그대로 풀어 쓸 수 있는 묶음을 만든다.
-#    1) dist/moaipii-<버전>-<플랫폼>/ 에 lib/ · include/ · bindings/{python,rust,java,php}/ · doc/ · samples/ 를 채운다
+#    1) dist/moaipii-<버전>-<플랫폼>/ 에 lib/ · include/ · bindings/{python,rust,java,php}/ · doc/ 를 채운다
 #       Windows 는 C++ 링크용 가져오기 라이브러리 moaipii.dll.lib 도 lib/ 에 넣는다
-#       시험 도구 mp(.exe) 를 주면 lib/ 에 같이 넣는다
+#       시험 도구 mp(.exe) · 배포 시험 도구 moaipii-test(.exe) 를 주면 lib/ 에 같이 넣는다
+#       (moaipii-test 는 DLL 옆에 있어야 따로 설정 없이 그 DLL 을 찾는다)
 #    2) VERSION · CHANGELOG.md · README.md · SHA256SUMS 를 넣는다
 #    3) windows-x64 는 zip, linux-x64 는 tgz 로 묶는다
 #    4) 같은 묶음을 버전 없는 이름 moaipii-<플랫폼>.zip / .tgz 로도 복사한다.
@@ -40,7 +41,7 @@ EXTRAS = [
     ("bindings/java/moaipii/Json.java", "bindings/java/moaipii/Json.java"),
     ("bindings/php/MoaiPii.php", "bindings/php/MoaiPii.php"),
     ("doc/moaipii-guide.html", "doc/moaipii-연동설명서.html"),
-    ("samples/python/moaipii_cli.py", "samples/python/moaipii_cli.py"),
+    ("doc/moaipii-test-guide.html", "doc/moaipii-test-사용설명서.html"),
 ]
 
 #------------------------------------------------------------------
@@ -63,7 +64,7 @@ def sha256(path):
 # tgz 안 파일 권한 정하기
 #=> Windows 에서 묶으면 파일 권한이 rw-rw-rw- 로 들어가 Linux 에서 mp 를 바로 실행할 수 없다.
 #   그래서 묶음 안 권한을 직접 정한다.
-#    1) 폴더 · 실행 파일(lib/mp) · 공유 라이브러리(.so) = 755
+#    1) 폴더 · 실행 파일(lib/mp · lib/moaipii-test) · 공유 라이브러리(.so) = 755
 #    2) 나머지 파일 = 644, 소유자는 root(0) 로 비운다
 #
 # -in: ti = tarfile 이 넣으려는 항목 정보
@@ -73,7 +74,7 @@ def sha256(path):
 #------------------------------------------------------------------
 def tar_mode(ti):
     # 압축을 푼 사람이 바로 실행할 수 있어야 하는 것만 실행 권한을 준다
-    if ti.isdir() or ti.name.endswith("/lib/mp") or ti.name.endswith(".so"):
+    if ti.isdir() or ti.name.endswith(("/lib/mp", "/lib/moaipii-test", ".so")):
         ti.mode = 0o755
     else:
         ti.mode = 0o644
@@ -90,11 +91,12 @@ def tar_mode(ti):
 # -in: lib     = 빌드된 라이브러리 파일 경로
 # -in: version = 버전 문자열(예: "0.1.0+abc1234")
 # -in: cli     = 시험 도구 mp(.exe) 경로(None 이면 넣지 않음, 기본 None)
+# -in: tester  = 배포 시험 도구 moaipii-test(.exe) 경로(None 이면 넣지 않음, 기본 None)
 #
 # -out: (arc, latest) = (버전 붙은 묶음 파일 경로, 버전 없는 이름의 복사본 경로)
 # -out: error = 플랫폼을 모르거나 파일이 없으면 SystemExit
 #------------------------------------------------------------------
-def build(plat, lib, version, cli=None):
+def build(plat, lib, version, cli=None, tester=None):
     if plat not in PLATFORMS:
         raise SystemExit("모르는 플랫폼: %s (windows-x64 · linux-x64)" % plat)
     lib_name = PLATFORMS[plat]
@@ -114,10 +116,12 @@ def build(plat, lib, version, cli=None):
         if not os.path.isfile(implib):
             raise SystemExit("가져오기 라이브러리가 없습니다: %s" % implib)
         shutil.copy2(implib, os.path.join(out, "lib", lib_name + ".lib"))
-    if cli:
-        if not os.path.isfile(cli):
-            raise SystemExit("시험 도구가 없습니다: %s" % cli)
-        shutil.copy2(cli, os.path.join(out, "lib", os.path.basename(cli)))
+    # 시험 도구들은 DLL 과 같은 lib/ 에 둔다 — moaipii-test 는 자기 폴더의 DLL 을 먼저 찾는다
+    for tool in (cli, tester):
+        if tool:
+            if not os.path.isfile(tool):
+                raise SystemExit("시험 도구가 없습니다: %s" % tool)
+            shutil.copy2(tool, os.path.join(out, "lib", os.path.basename(tool)))
     # 헤더·언어별 감싸개·설명서
     for dst, src in EXTRAS:
         sp = os.path.join(ROOT, *src.split("/"))
@@ -158,9 +162,11 @@ def build(plat, lib, version, cli=None):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) not in (4, 5):
-        raise SystemExit("사용: python scripts/package.py <windows-x64|linux-x64> <라이브러리 파일> <버전> [mp 실행 파일]")
-    arc, latest = build(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4] if len(sys.argv) == 5 else None)
+    if len(sys.argv) not in (4, 5, 6):
+        raise SystemExit("사용: python scripts/package.py <windows-x64|linux-x64> <라이브러리 파일> <버전> "
+                         "[mp 실행 파일] [moaipii-test 실행 파일]")
+    opt = sys.argv[4:] + [None, None]
+    arc, latest = build(sys.argv[1], sys.argv[2], sys.argv[3], opt[0] or None, opt[1] or None)
     print(arc)
     print(latest)
     # 커밋 안 된 수정으로 만든 묶음은 릴리스에 올리면 안 된다는 것을 눈에 띄게 알린다.

@@ -3,6 +3,13 @@
 판마다 **결과 바뀜** 여부를 적는다. "결과 바뀜: 예" 인 판을 받으면 쓰는 쪽(MpowerClassify 등)은
 평가셋을 다시 돌린다.
 
+## 미출시
+
+- 결과 바뀜: **아니오** (검출 라이브러리는 그대로)
+- 배포 시험 도구 `moaipii-test(.exe)` 추가 — 묶음의 DLL·.so 를 실행 중에 불러 `info`·`labels`·`demo`·`selftest`·
+  `scan`·`mask`·`bench`. Windows zip · Linux tgz 의 `lib/` 에 함께 들어간다.
+- 묶음에 `doc/moaipii-test-guide.html`(시험 도구 사용설명서) 추가, 연동 설명서 보강(언어별 예제·검출 항목 상세)
+
 ## 0.1.0 — 2026-11-17
 
 첫 판. MpowerClassify `Rust/src/pii.rs`(+ `pii_fold.rs`·`districts*.rs`)를 떼어 냈다.

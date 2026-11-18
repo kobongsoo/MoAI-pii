@@ -7,6 +7,7 @@
 
 - Windows `moaipii.dll` · Linux `libmoaipii.so`(CentOS 7 / glibc 2.17 에서 돈다), 외부 .so 의존 없음
 - C 진입점 6개(`include/moaipii.h`) — 본문은 (포인터, 길이), 옵션·결과는 UTF-8 JSON
+- **본문은 UTF-8 만 받는다.** ANSI(CP949·EUC-KR)·UTF-16·docx/hwp/pdf 는 부르는 쪽이 UTF-8 텍스트로 바꿔서 넘긴다(이유: 설명서 맨 앞 "중요")
 - 감싸개: Python(ctypes) · Rust(libloading) · Java(JNA) · PHP(FFI) · C++(헤더 하나)
 - 설계: `plan/MoAI-pii-개인정보검출-라이브러리분리-설계-20261117.html`
 
@@ -19,18 +20,33 @@
 | `crates/moaipii-cli` | 시험 도구 `mp` — 텍스트 파일을 C 진입점 그대로 검사 |
 | `include/moaipii.h` | C 헤더 |
 | `bindings/{python,rust,java,php,cpp}` | 언어별 감싸개 정본 |
-| `samples/python/moaipii_cli.py` | DLL 시험 CLI 샘플 — 배포된 DLL 을 감싸개로 불러 `info`·`demo`·`selftest`·`scan`·`mask`·`bench` |
+| `crates/moaipii-test` | 배포 시험 도구 `moaipii-test` — 묶음의 DLL·.so 를 실행 중에 불러 `info`·`demo`·`selftest`·`scan`·`mask`·`bench` |
 | `tests/bindings` | 감싸개 공통 시험(`cases.json` 하나로 다섯 언어 비교) |
 | `tools` | 골든 정답표·정규화표 생성기(ko-pii 필요, 개발 전용) |
 
 ## 빌드
 
 ```bash
-bash scripts/win-build.sh      # Windows: 시험 → dll·mp.exe → 감싸개 공통 시험 → dist/*.zip
-bash scripts/linux-build.sh    # 빌드서버(CentOS 7)에서 .so·mp → dist/*.tgz (scripts/server.env 필요)
+bash scripts/win-build.sh      # Windows: 시험 → dll·mp.exe·moaipii-test.exe → selftest → 감싸개 공통 시험 → dist/*.zip
+bash scripts/linux-build.sh    # 빌드서버(CentOS 7)에서 .so·mp·moaipii-test → selftest → dist/*.tgz (scripts/server.env 필요)
 ```
 
-## 시험 도구 mp
+## 배포 시험 도구 moaipii-test
+
+묶음을 받은 쪽이 코드 없이 라이브러리를 시험한다. 묶음의 `lib/` 에 DLL 과 함께 들어 있고,
+사용설명서는 `doc/moaipii-test-guide.html`(저장소: `doc/moaipii-test-사용설명서.html`).
+
+```bash
+lib/moaipii-test info                       # 불러온 라이브러리 경로·버전·ABI
+lib/moaipii-test selftest                   # 16개 항목 점검 — "결과: 16 / 16 통과" 면 정상
+lib/moaipii-test scan 본문.txt --hide-values
+lib/moaipii-test mask 본문.txt --style label
+lib/moaipii-test bench 큰본문.txt --threads 4
+```
+
+## 개발용 시험 도구 mp
+
+C 진입점 소스를 실행파일 안에 넣어 만든 것이라 DLL 파일은 읽지 않는다.
 
 ```bash
 mp version
