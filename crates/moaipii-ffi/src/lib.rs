@@ -152,8 +152,26 @@ pub extern "C" fn moaipii_abi_version() -> u32 {
 // -out: const char* = 버전 문자열
 // -out: error = 없음
 //------------------------------------------------------------------
+// 파일 안 버전 표식 — "MoAI-pii libmoaipii.so 0.1.0+abc1234 Copyright (C) 2026 kobongsoo"
+// Linux 에는 Windows 의 버전 정보 리소스가 없어, 읽을 수 있는 문자열을 전용 섹션에 둔다.
+// 확인: strings libmoaipii.so | grep MoAI-pii  ·  readelf -p .moaipii.version libmoaipii.so
+// (Windows 는 섹션 이름이 8자로 잘려 이름을 붙이지 않는다 — 문자열은 그대로 들어간다)
+const MARK_STR: &str = concat!(env!("MOAIPII_MARK"), "\0");
+#[used]
+#[cfg_attr(not(windows), link_section = ".moaipii.version")]
+static VERSION_MARK: [u8; MARK_STR.len()] = {
+    // &str 을 정적 배열로 옮긴다 — 포인터가 아니라 글자 자체가 섹션에 들어가야 보이기 때문
+    let b = MARK_STR.as_bytes();
+    let mut a = [0u8; MARK_STR.len()];
+    let mut i = 0;
+    while i < b.len() { a[i] = b[i]; i += 1; }
+    a
+};
+
 #[no_mangle]
 pub extern "C" fn moaipii_version() -> *const c_char {
+    // 링커가 아무도 안 쓰는 표식 섹션을 지우지 않도록, 내보내는 함수에서 한 번 참조한다
+    std::hint::black_box(&VERSION_MARK);
     static V: OnceLock<CString> = OnceLock::new();
     V.get_or_init(|| {
         CString::new(format!("{}+{}", env!("CARGO_PKG_VERSION"), env!("MOAIPII_GIT"))).expect("NUL 없음")

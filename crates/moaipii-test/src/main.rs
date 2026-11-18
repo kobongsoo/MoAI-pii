@@ -29,6 +29,20 @@ macro_rules! out {
 
 const VERSION: &str = concat!(env!("CARGO_PKG_VERSION"), "+", env!("MOAIPII_GIT"));
 
+// 파일 안 버전 표식 — "MoAI-pii moaipii-test 0.1.0+abc1234 Copyright (C) 2026 kobongsoo"
+// 확인: strings moaipii-test | grep MoAI-pii  ·  readelf -p .moaipii.version moaipii-test
+const MARK_STR: &str = concat!(env!("MOAIPII_MARK"), "\0");
+#[used]
+#[cfg_attr(not(windows), link_section = ".moaipii.version")]
+static VERSION_MARK: [u8; MARK_STR.len()] = {
+    // &str 을 정적 배열로 옮긴다 — 글자 자체가 섹션에 들어가야 strings 로 보인다
+    let b = MARK_STR.as_bytes();
+    let mut a = [0u8; MARK_STR.len()];
+    let mut i = 0;
+    while i < b.len() { a[i] = b[i]; i += 1; }
+    a
+};
+
 const USAGE: &str = "\
 moaipii-test — moaipii 라이브러리(DLL/.so) 시험 도구
 
@@ -673,6 +687,8 @@ fn cmd_bench(pii: &MoaiPii, a: &Args) -> i32 {
 // -out: error = 인자 오류 2 · 불러오기 실패 3 (USAGE 의 종료 코드 표 참고)
 //------------------------------------------------------------------
 fn main() {
+    // 링커가 버전 표식 섹션을 지우지 않도록 한 번 참조한다
+    std::hint::black_box(&VERSION_MARK);
     let argv: Vec<String> = std::env::args().skip(1).collect();
     let a = match parse_args(&argv) {
         Ok(a) => a,

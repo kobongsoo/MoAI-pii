@@ -3,14 +3,7 @@
 판마다 **결과 바뀜** 여부를 적는다. "결과 바뀜: 예" 인 판을 받으면 쓰는 쪽(MpowerClassify 등)은
 평가셋을 다시 돌린다.
 
-## 미출시
-
-- 결과 바뀜: **아니오** (검출 라이브러리는 그대로)
-- 배포 시험 도구 `moaipii-test(.exe)` 추가 — 묶음의 DLL·.so 를 실행 중에 불러 `info`·`labels`·`demo`·`selftest`·
-  `scan`·`mask`·`bench`. Windows zip · Linux tgz 의 `lib/` 에 함께 들어간다.
-- 묶음에 `doc/moaipii-test-guide.html`(시험 도구 사용설명서) 추가, 연동 설명서 보강(언어별 예제·검출 항목 상세)
-
-## 0.1.0 — 2026-11-17
+## 0.1.0 — 2026-11-18 (GitHub 릴리스 v0.1.0)
 
 첫 판. MpowerClassify `Rust/src/pii.rs`(+ `pii_fold.rs`·`districts*.rs`)를 떼어 냈다.
 
@@ -20,3 +13,8 @@
 - C 진입점 6개(ABI 1): `moaipii_abi_version` · `moaipii_version` · `moaipii_kopii_basis` · `moaipii_labels` ·
   `moaipii_scan` · `moaipii_free`
 - 감싸개: Python · Rust · Java(JNA) · PHP(FFI) · C++(헤더 하나)
+- 배포 시험 도구 `moaipii-test(.exe)` 추가 — 묶음의 DLL·.so 를 실행 중에 불러 `info`·`labels`·`demo`·`selftest`·
+  `scan`·`mask`·`bench`. Windows zip · Linux tgz 의 `lib/` 에 함께 들어간다.
+- 묶음에 `doc/moaipii-test-guide.html`(시험 도구 사용설명서) 추가, 연동 설명서 보강(언어별 예제·검출 항목 상세)
+- Windows `moaipii.dll`·`moaipii-test.exe`·`mp.exe` 에 버전 정보 리소스(파일 버전·제품 이름·제품 버전·저작권·언어) 추가
+- 모든 플랫폼의 라이브러리·시험 도구에 읽을 수 있는 버전 표식(`.moaipii.version` 섹션, `strings`·`readelf` 로 확인) 추가

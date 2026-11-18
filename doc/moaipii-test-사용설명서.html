@@ -257,6 +257,19 @@ ko-pii 기준  : 1.15.2
 <span class="cm"># selftest 끝줄 — 이게 나오면 정상 (종료 코드 0)</span>
 결과: 16 / 16 통과</pre>
     <div class="note safe"><span class="badge">판정</span><p><b>info</b>가 버전을 찍으면 라이브러리가 열린 것이고, <b>selftest 16/16</b>이면 검출·좌표·오류 처리·스레드까지 정상입니다. 하나라도 FAIL 이면 그 줄을 §9 문제 해결과 함께 전달해 주세요.</p></div>
+
+    <h3>실행하지 않고 파일 버전 보기</h3>
+    <p>라이브러리·시험 도구 파일에는 판을 적은 표식이 들어 있어, 실행하지 않고도 어느 판인지 알 수 있습니다.</p>
+    <div class="twrap"><table>
+      <thead><tr><th>어디서</th><th>방법</th><th>보이는 값</th></tr></thead>
+      <tbody>
+        <tr><td>Windows</td><td>파일 오른쪽 클릭 → 속성 → <b>자세히</b></td><td>파일 설명 · 파일 버전 0.1.0.0 · 제품 이름 MoAI-pii · 제품 버전 0.1.0+해시 · 저작권 · 언어 한국어</td></tr>
+        <tr><td>Windows PowerShell</td><td class="mono">(Get-Item lib\moaipii.dll).VersionInfo | Format-List</td><td>위와 같음</td></tr>
+        <tr><td>Linux</td><td class="mono">readelf -p .moaipii.version lib/libmoaipii.so</td><td rowspan="2" class="mono">MoAI-pii libmoaipii.so 0.1.0+해시 Copyright (C) 2026 kobongsoo</td></tr>
+        <tr><td>Linux (binutils 없을 때)</td><td class="mono">strings lib/libmoaipii.so | grep MoAI-pii</td></tr>
+      </tbody>
+    </table></div>
+    <p>Linux 파일 형식(ELF)에는 Windows 의 "속성 &gt; 자세히" 같은 버전 정보가 없어서, 대신 읽을 수 있는 표식 문자열을 <code class="inl">.moaipii.version</code> 섹션에 넣어 두었습니다. <code class="inl">moaipii-test</code>·<code class="inl">mp</code>에도 같은 표식이 있습니다.</p>
   </section>
 
   <!-- ───────────── 03 ───────────── -->

@@ -108,6 +108,11 @@ echo "  moaipii-test 최고 요구 glibc: \$gt"
 \$t version | grep -q "$VERSION" || { echo "moaipii-test version 이 $VERSION 이 아닙니다: \$(\$t version)"; exit 1; }
 MOAIPII_LIB= \$t selftest > selftest.log 2>&1 || { tail -25 selftest.log; echo "moaipii-test selftest 실패"; exit 1; }
 echo "  moaipii-test \$(tail -1 selftest.log)"
+# 파일 안 버전 표식 — 실행하지 않고 readelf 로 판을 알 수 있어야 한다
+for b in \$f \$d \$t; do
+    m=\$(readelf -p .moaipii.version \$b 2>/dev/null | grep -o 'MoAI-pii.*' | head -1)
+    case "\$m" in *"$VERSION"*) echo "  표식: \$m" ;; *) echo "버전 표식이 없거나 다릅니다: \$b (\$m)"; exit 1 ;; esac
+done
 # 감싸개 공통 시험 — 빌드서버에 없는 언어 도구는 이름을 찍고 건너뛴다
 MOAIPII_LIB="\$PWD/\$f" bash tests/bindings/run_all.sh || { echo "감싸개 공통 시험 실패"; exit 1; }
 EOF

@@ -13,3 +13,7 @@ crate-type = ["cdylib"]
 [dependencies]
 moaipii = { path = "../moaipii" }
 serde_json = "1"
+
+[target.'cfg(windows)'.build-dependencies]
+# Windows 실행파일·DLL 에 버전 정보 리소스를 넣는다(build.rs 의 win_version_resource)
+embed-resource = "2.5"

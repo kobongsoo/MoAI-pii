@@ -63,6 +63,13 @@ rm -rf "$tmp"
 MOAIPII_LIB= "$TST" selftest > target/release/selftest.log 2>&1 \
     || { tail -20 target/release/selftest.log; die "moaipii-test.exe selftest 실패"; }
 echo "   moaipii-test $(tail -1 target/release/selftest.log)"
+# 파일 안 버전 표식(strings 로 보이는 문자열)과 탐색기 '속성 > 자세히' 의 제품 버전
+for b in "$LIB" "$CLI" "$TST"; do
+    grep -aqF "MoAI-pii $(basename "$b") $VERSION" "$b" || die "버전 표식이 없거나 다릅니다: $b"
+    pv="$(powershell -NoProfile -Command "(Get-Item '$(cygpath -w "$b")').VersionInfo.ProductVersion" | tr -d '\r')"
+    [ "$pv" = "$VERSION" ] || die "버전 정보 리소스가 없거나 다릅니다: $b ($pv)"
+done
+echo "   버전 표식·버전 정보 리소스 확인"
 
 step "감싸개 공통 시험"
 MOAIPII_LIB="$PWD/$LIB" bash tests/bindings/run_all.sh || die "감싸개 공통 시험 실패"

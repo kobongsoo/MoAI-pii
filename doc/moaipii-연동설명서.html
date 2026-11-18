@@ -217,6 +217,7 @@ $text = mb_convert_encoding(file_get_contents($p), <span class="hi">'UTF-8'</spa
         <tr><td class="mono">mp(.exe)</td><td>C 진입점 소스를 실행파일 안에 넣어 만든 개발용 도구(DLL 파일을 읽지 않음)</td><td>결과 JSON 만 빨리 보고 싶을 때</td></tr>
       </tbody>
     </table></div>
+    <p><b>파일 판 확인</b>: Windows 는 파일 속성의 "자세히"(파일 버전·제품 버전·저작권), Linux 는 <code class="inl">readelf -p .moaipii.version lib/libmoaipii.so</code> 또는 <code class="inl">strings lib/libmoaipii.so | grep MoAI-pii</code>로 실행하지 않고 볼 수 있습니다. 실행 중에는 <code class="inl">moaipii_version()</code>이 같은 값을 돌려줍니다.</p>
   </section>
 
   <!-- ───────────────────────── 02 ───────────────────────── -->
